@@ -13,3 +13,11 @@ Route::view('profile', 'profile')
     ->name('profile');
 
 require __DIR__.'/auth.php';
+
+
+use App\Livewire\Dashboard\DeviceStatus;
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', DeviceStatus::class)
+        ->name('dashboard');
+});
