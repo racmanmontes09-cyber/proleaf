@@ -9,7 +9,7 @@ class DeviceStatus extends Component
    public function render()
 {
     return view('livewire.dashboard.device-status', [
-        'device' => Device::latest()->first(),
+        'device' => Device::first(),
     ]);
 }
 }
