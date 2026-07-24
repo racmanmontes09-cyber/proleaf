@@ -71,7 +71,7 @@
         <div class="space-y-2 relative z-10 min-w-0">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#95D5B2] text-xs font-semibold border border-white/15 backdrop-blur-md">
                 <span class="w-2 h-2 rounded-full bg-[#95D5B2] animate-pulse shrink-0"></span>
-                <span class="truncate">ESP32 Hardware Node: Online</span>
+                <span class="truncate">{{ $bannerStatusLabel }}</span>
                 <span class="text-white/40 shrink-0">•</span>
                 <span class="truncate">MQTT Broker: Connected</span>
             </div>
@@ -91,8 +91,8 @@
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
                 </span>
                 <div>
-                    <span class="block text-xs font-bold text-white uppercase tracking-wider">Node ESP32-01</span>
-                    <span class="text-[10px] text-[#95D5B2] font-mono">Last Updated: Just now</span>
+                    <span class="block text-xs font-bold text-white uppercase tracking-wider">{{ $deviceNameLabel }}</span>
+                    <span class="text-[10px] text-[#95D5B2] font-mono">{{ $lastUpdatedLabel }}</span>
                 </div>
             </div>
 
@@ -119,7 +119,7 @@
             <!-- Air Temp -->
             <x-leaf.kpi-card 
                 title="Air Temp" 
-                value="24.8" 
+                value="{{ $airTempValue }}" 
                 unit="°C" 
                 status="Optimal" 
                 statusType="online" 
@@ -136,7 +136,7 @@
             <!-- Air Humidity -->
             <x-leaf.kpi-card 
                 title="Air Humidity" 
-                value="68" 
+                value="{{ $airHumidityValue }}" 
                 unit="%" 
                 status="Good VPD" 
                 statusType="online" 
@@ -153,7 +153,7 @@
             <!-- Water Temp -->
             <x-leaf.kpi-card 
                 title="Water Temp" 
-                value="22.4" 
+                value="{{ $waterTempValue }}" 
                 unit="°C" 
                 status="Optimal" 
                 statusType="online" 
@@ -170,7 +170,7 @@
             <!-- Water pH -->
             <x-leaf.kpi-card 
                 title="Water pH" 
-                value="6.3" 
+                value="{{ $waterPhValue }}" 
                 unit="pH" 
                 status="Balanced" 
                 statusType="online" 
@@ -187,7 +187,7 @@
             <!-- EC -->
             <x-leaf.kpi-card 
                 title="Nutrient EC" 
-                value="1.9" 
+                value="{{ $nutrientEcValue }}" 
                 unit="mS/cm" 
                 status="Optimal" 
                 statusType="online" 
@@ -204,7 +204,7 @@
             <!-- Water Level -->
             <x-leaf.kpi-card 
                 title="Water Level" 
-                value="84" 
+                value="{{ $waterLevelValue }}" 
                 unit="%" 
                 status="Tank High" 
                 statusType="online" 
@@ -221,7 +221,7 @@
             <!-- Water Flow -->
             <x-leaf.kpi-card 
                 title="Water Flow" 
-                value="2.4" 
+                value="{{ $waterFlowValue }}" 
                 unit="L/min" 
                 status="Running" 
                 statusType="online" 
@@ -262,29 +262,33 @@
                 <div class="p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
                     <div class="flex items-center justify-between pb-3 border-b border-gray-100 min-w-0">
                         <h3 class="text-base font-bold text-[#1B4332] truncate">ESP32 Controller Node</h3>
-                        <x-leaf.status-badge type="online" label="Online" class="shrink-0" />
+                        <x-leaf.status-badge :type="$deviceStatusType" :label="$deviceStatusLabel" class="shrink-0" />
                     </div>
 
                     <div class="space-y-2.5 text-xs">
                         <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Device ID</span>
-                            <span class="font-mono font-bold text-[#2D6A4F] truncate">LEAF-ESP32-01</span>
+                            <span class="text-gray-500">Device Name</span>
+                            <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceNameLabel }}</span>
                         </div>
                         <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Firmware</span>
-                            <span class="font-mono text-gray-700 truncate">v2.4.1 (Stable)</span>
+                            <span class="text-gray-500">Last Seen</span>
+                            <span class="font-mono text-gray-700 truncate">{{ $lastSeenLabel }}</span>
                         </div>
                         <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Wi-Fi Signal (RSSI)</span>
-                            <span class="font-mono text-[#2D6A4F] font-semibold truncate">-62 dBm (Strong)</span>
+                            <span class="text-gray-500">Firmware Version</span>
+                            <span class="font-mono text-gray-700 truncate">{{ $firmwareLabel }}</span>
                         </div>
                         <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Free Heap</span>
-                            <span class="font-mono text-gray-700 truncate">184,320 Bytes</span>
+                            <span class="text-gray-500">Local IP Address</span>
+                            <span class="font-mono text-[#2D6A4F] font-semibold truncate">{{ $localIpLabel }}</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
+                            <span class="text-gray-500">Wi-Fi RSSI</span>
+                            <span class="font-mono text-[#2D6A4F] font-semibold truncate">{{ $wifiRssiLabel }}</span>
                         </div>
                         <div class="flex justify-between py-1.5 min-w-0">
-                            <span class="text-gray-500">System Uptime</span>
-                            <span class="font-mono text-gray-700 truncate">14d 08h 22m</span>
+                            <span class="text-gray-500">Uptime</span>
+                            <span class="font-mono text-gray-700 truncate">{{ $systemUptimeLabel }}</span>
                         </div>
                     </div>
                 </div>
