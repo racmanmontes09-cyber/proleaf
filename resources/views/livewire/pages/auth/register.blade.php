@@ -135,7 +135,7 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Left Side Footer -->
         <div class="relative z-10 text-xs text-[#95D5B2]/70 flex items-center justify-between pt-6 border-t border-white/10">
             <span>© 2026 Project L.E.A.F.</span>
-            <span>Laravel 13 • Livewire 3</span>
+            <span>Project L.E.A.F. • Livewire 3</span>
         </div>
 
     </div>

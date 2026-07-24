@@ -3,10 +3,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <title>Project L.E.A.F. | IoT Hydroponic Cultivation System</title>
     
     <!-- Meta Description -->
-    <meta name="description" content="Project L.E.A.F. - An IoT-Based Hydroponic Cultivation System for Optimized Lettuce Production powered by Laravel 13, Livewire 3, and ESP32 hardware automation.">
+    <meta name="description" content="Project L.E.A.F. - An IoT-Based Hydroponic Cultivation System for Optimized Lettuce Production powered by Livewire 3, Volt, Tailwind CSS, Vite, and ESP32 hardware automation.">
 
     <!-- Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -569,7 +574,7 @@
                                 <svg class="w-3.5 h-3.5 text-[#95D5B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                 </svg>
-                                https://project-leaf.local/dashboard
+                                https://projectleaf/dashboard
                             </div>
                         </div>
                         <div class="hidden sm:flex items-center gap-2">
@@ -782,7 +787,7 @@
                                 <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
                                 <div>
                                     <h4 class="text-sm font-bold text-[#1B4332]">Modern Stack Architecture</h4>
-                                    <p class="text-xs text-[#1B4332]/70">Constructed on Laravel 13, Livewire 3 reactive components, and Tailwind CSS.</p>
+                                    <p class="text-xs text-[#1B4332]/70">Constructed with Livewire 3 reactive components and Tailwind CSS.</p>
                                 </div>
                             </div>
                         </div>
@@ -823,7 +828,7 @@
                                         03
                                     </div>
                                     <div>
-                                        <h4 class="text-sm font-bold text-[#1B4332]">Laravel 13 + Livewire 3 Application</h4>
+                                        <h4 class="text-sm font-bold text-[#1B4332]">Project L.E.A.F. + Livewire 3 Application</h4>
                                         <p class="text-xs text-[#1B4332]/70">Real-time reactive dashboard, persistent database logging & automated relays</p>
                                     </div>
                                 </div>
@@ -920,7 +925,7 @@
                         <h4 class="text-xs font-bold uppercase tracking-wider text-[#95D5B2]">System Architecture Specs</h4>
                         <div class="flex flex-wrap gap-2">
                             <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Project L.E.A.F.</span>
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Laravel 13</span>
+                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Volt</span>
                             <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Livewire 3</span>
                             <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">ESP32</span>
                             <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Tailwind CSS</span>
