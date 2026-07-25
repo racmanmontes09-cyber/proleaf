@@ -20,7 +20,6 @@ class DeviceUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'device_id'        => ['required', 'string', 'max:100'],
             'name'             => ['nullable', 'string', 'max:255'],
             'firmware_version' => ['nullable', 'string', 'max:50'],
             'local_ip_address' => ['nullable', 'ip'],

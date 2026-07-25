@@ -1,22 +1,88 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use App\Models\Alert;
+use App\Models\Device;
 use Livewire\Volt\Component;
 
 new class extends Component
 {
+    public string $alertBadgeLabel = 'Waiting';
+
+    public string $deviceNameLabel = 'Waiting for device...';
+
+    public string $deviceStatusLabel = 'Waiting for device...';
     /**
      * Log the current user out of the application.
      */
+    public function mount(): void
+    {
+        $this->refreshDeviceStatus();
+    }
+
     public function logout(Logout $logout): void
     {
         $logout();
 
         $this->redirect('/', navigate: true);
     }
+
+    public function refreshDeviceStatus(): void
+    {
+        $device = Device::query()
+            ->latest('last_seen_at')
+            ->select(['id', 'device_id', 'name', 'last_seen_at'])
+            ->with(['latestTelemetry' => function ($query) {
+                $query->latestReading()->select([
+                    'id',
+                    'device_id',
+                    'air_temperature',
+                    'humidity',
+                    'ph',
+                    'ec',
+                    'updated_at',
+                ]);
+            }])
+            ->first();
+
+        $this->deviceNameLabel = $device && $device->name
+            ? 'Node '.$device->name
+            : 'Waiting for device...';
+        $this->deviceStatusLabel = $device
+            ? ($device->is_online ? 'Online' : 'Offline')
+            : 'Waiting for device...';
+        $this->alertBadgeLabel = $this->resolveAlertBadgeLabel($device);
+    }
+
+    private function resolveAlertBadgeLabel(?Device $device): string
+    {
+        if ($device === null || $device->latestTelemetry === null) {
+            return 'Waiting';
+        }
+
+        $alertCount = Alert::query()
+            ->forDevice($device)
+            ->active()
+            ->count();
+
+        return $alertCount === 0 ? '0 Active' : $alertCount.' Active';
+    }
+
+    private function resolveStatus(float $value, float $low, float $high): string
+    {
+        if ($value < $low) {
+            return 'LOW';
+        }
+
+        if ($value > $high) {
+            return 'HIGH';
+        }
+
+        return 'NORMAL';
+    }
 }; ?>
 
-<div>
+<div wire:poll.visible.15s>
 
     <!-- ========================================== -->
     <!-- 1. FIXED DESKTOP SIDEBAR (256px / w-64)    -->
@@ -65,50 +131,52 @@ new class extends Component
                     </button>
 
                     <!-- Monitoring Link -->
-                    <button 
-                        @click="activeTab = 'monitoring'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'monitoring' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('monitoring') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('monitoring') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 010-7.778M12 20a9.99 9.99 0 000-14M15.889 16.404a5.5 5.5 0 000-7.778M12 12h.01"/>
-                        </svg>
-                        <span class="truncate">Monitoring</span>
-                    </button>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 010-7.778M12 20a9.99 9.99 0 000-14M15.889 16.404a5.5 5.5 0 000-7.778M12 12h.01"/>
+                            </svg>
+                            <span class="truncate">Monitoring</span>
+                        </div>
+                    </a>
 
                     <!-- Analytics Link -->
-                    <button 
-                        @click="activeTab = 'analytics'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'analytics' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('analytics') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('analytics') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                        </svg>
-                        <span class="truncate">Analytics</span>
-                    </button>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                            </svg>
+                            <span class="truncate">Analytics</span>
+                        </div>
+                    </a>
 
                     <!-- Devices Link -->
-                    <button 
-                        @click="activeTab = 'devices'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'devices' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('device-management') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('device-management') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                        </svg>
-                        <span class="truncate">Device Management</span>
-                    </button>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                            <span class="truncate">Device Management</span>
+                        </div>
+                    </a>
 
                     <!-- Alerts Link -->
-                    <button 
-                        @click="activeTab = 'alerts'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'alerts' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('alerts-logs') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('alerts-logs') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
                         <div class="flex items-center gap-3 min-w-0">
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,35 +184,37 @@ new class extends Component
                             </svg>
                             <span class="truncate">Alerts & Logs</span>
                         </div>
-                        <span class="px-2 py-0.5 text-[9px] font-bold bg-[#95D5B2] text-[#1B4332] rounded-full shrink-0">2 Active</span>
-                    </button>
+                        <span class="px-2 py-0.5 text-[9px] font-bold bg-[#95D5B2] text-[#1B4332] rounded-full shrink-0">{{ $alertBadgeLabel }}</span>
+                    </a>
 
                     <!-- Settings Link -->
-                    <button 
-                        @click="activeTab = 'settings'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'settings' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('settings') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('settings') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <span class="truncate">System Settings</span>
-                    </button>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span class="truncate">System Settings</span>
+                        </div>
+                    </a>
 
                     <!-- Reports Link -->
-                    <button 
-                        @click="activeTab = 'reports'; sidebarOpen = false" 
-                        type="button"
-                        :class="activeTab === 'reports' ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium'"
-                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all text-left"
+                    <a 
+                        href="{{ route('reports') }}"
+                        wire:navigate
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all text-left {{ request()->routeIs('reports') ? 'bg-[#2D6A4F] text-white shadow-md shadow-[#2D6A4F]/30 font-bold' : 'text-[#95D5B2]/80 hover:text-white hover:bg-[#2D6A4F]/30 font-medium' }}"
                     >
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span class="truncate">Reports & Export</span>
-                    </button>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span class="truncate">Reports & Export</span>
+                        </div>
+                    </a>
                 </div>
 
                 <div class="space-y-1 pt-4 border-t border-[#2D6A4F]/30">
@@ -187,8 +257,8 @@ new class extends Component
                     <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#95D5B2]"></span>
                 </span>
                 <div class="min-w-0">
-                    <p class="text-xs font-bold text-white truncate">ESP32 Controller</p>
-                    <p class="text-[10px] text-[#95D5B2] truncate">Broker: Connected</p>
+                    <p class="text-xs font-bold text-white truncate">{{ $deviceNameLabel }}</p>
+                    <p class="text-[10px] text-[#95D5B2] truncate">{{ $deviceStatusLabel }}</p>
                 </div>
             </div>
         </div>
@@ -323,13 +393,13 @@ new class extends Component
                 </div>
 
                 <div class="space-y-1.5 text-xs">
-                    <button @click="activeTab = 'dashboard'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-white font-semibold hover:bg-[#2D6A4F]/30 transition-colors">📊 Dashboard</button>
-                    <button @click="activeTab = 'monitoring'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">📡 Monitoring</button>
-                    <button @click="activeTab = 'analytics'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">📈 Analytics</button>
-                    <button @click="activeTab = 'devices'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">⚡ Device Management</button>
-                    <button @click="activeTab = 'alerts'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">🔔 Alerts & Logs</button>
-                    <button @click="activeTab = 'settings'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">⚙️ System Settings</button>
-                    <button @click="activeTab = 'reports'; sidebarOpen = false" class="w-full text-left px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">📋 Reports & Export</button>
+                    <a href="{{ route('dashboard') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('dashboard') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">📊 Dashboard</a>
+                    <a href="{{ route('monitoring') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('monitoring') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">📡 Monitoring</a>
+                    <a href="{{ route('analytics') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('analytics') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">📈 Analytics</a>
+                    <a href="{{ route('device-management') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('device-management') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">⚡ Device Management</a>
+                    <a href="{{ route('alerts-logs') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('alerts-logs') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">🔔 Alerts & Logs</a>
+                    <a href="{{ route('settings') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('settings') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">⚙️ System Settings</a>
+                    <a href="{{ route('reports') }}" wire:navigate @click="sidebarOpen = false" class="block px-3 py-2 rounded-xl {{ request()->routeIs('reports') ? 'text-white font-semibold bg-[#2D6A4F]/30' : 'text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors' }}">📋 Reports & Export</a>
                     <a href="{{ route('profile') }}" wire:navigate class="block px-3 py-2 rounded-xl text-[#95D5B2] hover:bg-[#2D6A4F]/30 transition-colors">👤 Profile Settings</a>
                     <button wire:click="logout" class="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-900/30 transition-colors">🚪 Log Out</button>
                 </div>

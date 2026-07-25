@@ -1,15 +1,22 @@
 @props([
-    'name' => 'ESP32 Hydroponic Node',
-    'deviceId' => 'LEAF-NODE-01',
-    'isOnline' => true,
-    'firmware' => 'v1.2.0-esp32',
-    'wifiRssi' => '-58',
-    'uptime' => '48:12:05',
-    'freeHeap' => '218,400',
-    'battery' => '95%',
-    'mqttStatus' => 'CONNECTED',
-    'lastSeen' => 'Just now',
+    'name' => 'Waiting for device...',
+    'deviceId' => 'Waiting for device ID...',
+    'isOnline' => false,
+    'statusLabel' => 'Waiting',
+    'statusType' => 'standby',
+    'firmware' => 'Waiting for firmware...',
+    'wifiRssi' => 'Waiting for hardware...',
+    'uptime' => 'Waiting for hardware...',
+    'freeHeap' => 'Waiting for hardware...',
+    'battery' => 'Pending hardware integration',
+    'transportStatus' => 'WAITING FOR DEVICE',
+    'lastSeen' => 'Waiting for device...',
 ])
+
+@php
+    $statusLabel = $statusLabel === 'Waiting' && $isOnline ? 'ONLINE' : $statusLabel;
+    $statusType = $statusType === 'standby' && $isOnline ? 'online' : $statusType;
+@endphp
 
 <div {{ $attributes->merge(['class' => 'p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 hover:shadow-md transition-all']) }}>
     
@@ -24,22 +31,22 @@
                 <p class="text-xs font-mono text-[#2D6A4F]">{{ $deviceId }}</p>
             </div>
         </div>
-        <x-leaf.status-badge :type="$isOnline ? 'online' : 'offline'" :label="$isOnline ? 'ONLINE' : 'OFFLINE'" />
+        <x-leaf.status-badge :type="$statusType" :label="$statusLabel" />
     </div>
 
     <!-- Specs Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">Wi-Fi Signal</span>
-            <span class="font-mono font-bold text-[#1B4332] text-sm">{{ $wifiRssi }} dBm</span>
+            <span class="font-mono font-bold text-[#1B4332] text-sm">{{ is_numeric($wifiRssi) ? $wifiRssi.' dBm' : $wifiRssi }}</span>
         </div>
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">Battery</span>
             <span class="font-mono font-bold text-[#2D6A4F] text-sm">{{ $battery }}</span>
         </div>
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
-            <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">MQTT Broker</span>
-            <span class="font-mono font-bold text-emerald-700 text-sm">{{ $mqttStatus }}</span>
+            <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">HTTP API</span>
+            <span class="font-mono font-bold text-emerald-700 text-sm">{{ $transportStatus }}</span>
         </div>
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">Firmware</span>
@@ -47,7 +54,7 @@
         </div>
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">Free Heap</span>
-            <span class="font-mono font-medium text-gray-700 text-xs">{{ $freeHeap }} B</span>
+            <span class="font-mono font-medium text-gray-700 text-xs">{{ is_numeric($freeHeap) ? $freeHeap.' B' : $freeHeap }}</span>
         </div>
         <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100">
             <span class="text-gray-400 block text-[10px] uppercase tracking-wider font-semibold">Uptime</span>
