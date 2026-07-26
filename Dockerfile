@@ -11,17 +11,9 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-COPY composer.json composer.lock ./
-
-RUN composer install --no-scripts --prefer-dist
-
 COPY . .
 
-RUN composer dump-autoload --optimize
-
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+RUN composer install --no-scripts --optimize-autoloader
 
 EXPOSE 8080
 
