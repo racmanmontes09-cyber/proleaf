@@ -15,12 +15,6 @@
             $currentRoute = request()->route()?->getName();
             $pageTitles = [
                 'dashboard' => 'Dashboard | Project L.E.A.F.',
-                'monitoring' => 'Monitoring | Project L.E.A.F.',
-                'analytics' => 'Analytics | Project L.E.A.F.',
-                'device-management' => 'Device Management | Project L.E.A.F.',
-                'alerts-logs' => 'Alerts & Logs | Project L.E.A.F.',
-                'reports' => 'Reports & Export | Project L.E.A.F.',
-                'settings' => 'System Settings | Project L.E.A.F.',
                 'profile' => 'Profile | Project L.E.A.F.',
             ];
         @endphp

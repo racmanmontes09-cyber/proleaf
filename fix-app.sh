@@ -12,26 +12,12 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-// Create Echo instance configured for Pusher
-const echo = new Echo({
+window.Echo = new Echo({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_PUSHER_APP_KEY,
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    wsHost: import.meta.env.VITE_PUSHER_HOST,
-    wsPort: import.meta.env.VITE_PUSHER_PORT || 443,
-    wssPort: import.meta.env.VITE_PUSHER_PORT || 443,
     forceTLS: true,
-    encrypted: true,
-    enabledTransports: ['wss', 'ws'],
 });
-
-window.Echo = echo;
-
-if (echo.connector) console.log('✅ Connector configured for pusher');
-
-console.log('✅ Echo initialized for pusher');
-
-window.__echo_config = echo.options;
 APPJS
 
 # Clear and rebuild
@@ -44,9 +30,7 @@ rm -rf public/build node_modules/.vite bootstrap/cache/*
 echo "Building..."
 npm run build
 
-echo "Restarting Reverb..."
-pkill -f reverb
-nohup /opt/alt/php84/usr/bin/php artisan reverb:start --host=0.0.0.0 --port=8080 > storage/logs/reverb.log 2>&1 &
+echo "Broadcasting setup complete."
 
 echo ""
 echo "✅ FIX COMPLETE!"
