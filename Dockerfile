@@ -19,6 +19,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
+# Remove Breeze reference from config if it exists
+RUN if [ -f config/app.php ]; then \
+    sed -i '/Laravel\\Breeze\\BreezeServiceProvider/d' config/app.php; \
+    fi
+
 # Install PHP dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
