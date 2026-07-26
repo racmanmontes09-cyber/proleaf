@@ -2,7 +2,6 @@ FROM php:8.4-cli
 
 WORKDIR /var/www/html
 
-# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -13,35 +12,21 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application files
 COPY . .
 
-# Remove Breeze reference from config if it exists
-RUN if [ -f config/app.php ]; then \
-    sed -i '/Laravel\\Breeze\\BreezeServiceProvider/d' config/app.php; \
-    fi
+# Install with --no-scripts to skip post-autoload-dump
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
-# Install PHP dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Manually run package discovery
+RUN php artisan package:discover --ansi || true
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-echo "🔄 Waiting for database to be ready..."\n\
-sleep 5\n\
-echo "🗄️ Running migrations..."\n\
-php artisan migrate --force --no-interaction\n\
-echo "🚀 Starting application..."\n\
-php artisan serve --host=0.0.0.0 --port=8080\n\
-' > /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
-
 EXPOSE 8080
 
-CMD ["/usr/local/bin/start.sh"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080"]
