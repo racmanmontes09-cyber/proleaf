@@ -1,6 +1,6 @@
 <div wire:poll.visible.5s="refreshDashboardLight" class="space-y-8 min-w-0" x-data="{
-    hasChartTelemetry: @json($hasChartTelemetry),
-    hasYieldData: @json($hasYieldData),
+    hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
+    hasYieldData: {{ json_encode($hasYieldData) }},
     initialized: false,
     subscribed: false,
     charts: {
@@ -22,14 +22,14 @@
     },
     initialChartPayload() {
         return {
-            telemetryOverviewSeries: @json($telemetryOverviewSeries),
-            telemetryOverviewCategories: @json($telemetryOverviewCategories),
-            analyticsSeries: @json($analyticsSeries),
-            analyticsCategories: @json($analyticsCategories),
-            yieldSeries: @json($yieldSeries),
-            yieldLabels: @json($yieldLabels),
-            hasChartTelemetry: @json($hasChartTelemetry),
-            hasYieldData: @json($hasYieldData),
+            telemetryOverviewSeries: {{ json_encode($telemetryOverviewSeries) }},
+            telemetryOverviewCategories: {{ json_encode($telemetryOverviewCategories) }},
+            analyticsSeries: {{ json_encode($analyticsSeries) }},
+            analyticsCategories: {{ json_encode($analyticsCategories) }},
+            yieldSeries: {{ json_encode($yieldSeries) }},
+            yieldLabels: {{ json_encode($yieldLabels) }},
+            hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
+            hasYieldData: {{ json_encode($hasYieldData) }},
         };
     },
     initApexCharts() {
@@ -232,12 +232,18 @@
                     $bannerStatusType = 'warning';
                 }
             @endphp
-            <x-health-banner
-                :device-status-label="$deviceStatusLabel ?? 'Unknown'"
-                :last-seen-label="$lastSeenLabel ?? 'Pending'"
-                :active-alert-count="$activeAlertCount"
-                :status-type="$bannerStatusType"
-            />
+            <div class="rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-[#1B4332]">{{ $deviceStatusLabel ?? 'Unknown' }}</p>
+                        <p class="text-xs text-[#2D6A4F]/80">{{ $lastSeenLabel ?? 'Pending' }}</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide {{ $bannerStatusType === 'optimal' ? 'bg-emerald-100 text-emerald-700' : ($bannerStatusType === 'critical' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700') }}">
+                        {{ ucfirst($bannerStatusType) }}
+                    </span>
+                </div>
+                <p class="mt-4 text-sm text-[#2D6A4F]/80">Active alerts: {{ $activeAlertCount }}</p>
+            </div>
         </div>
 
         <!-- KPI METRICS GRID -->
