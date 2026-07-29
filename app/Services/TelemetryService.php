@@ -6,8 +6,10 @@ use App\Events\TelemetryReceived;
 use App\Models\Device;
 use App\Models\Telemetry;
 use App\Services\AlertService;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class TelemetryService
 {
@@ -21,27 +23,25 @@ class TelemetryService
      */
     public function storeTelemetry(Device $device, array $payload): array
     {
-        $startTime = microtime(true);
-
         try {
             $telemetry = $device->telemetries()->create($payload);
-            $storeTime = microtime(true);
 
             $this->alertService->evaluateTelemetry($device, $telemetry);
 
-            broadcast(new TelemetryReceived($telemetry));
-            $broadcastTime = microtime(true);
+            try {
+                broadcast(new TelemetryReceived($telemetry));
+            } catch (BroadcastException $e) {
+                Log::warning('Telemetry broadcast failed', [
+                    'device_id' => $device->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
 
             return [
                 'success' => true,
                 'created' => true,
                 'message' => 'Telemetry stored successfully.',
                 'telemetry' => $telemetry,
-                'timing' => [
-                    'http_to_store_ms' => round(($storeTime - $startTime) * 1000, 2),
-                    'store_to_broadcast_ms' => round(($broadcastTime - $storeTime) * 1000, 2),
-                    'total_backend_ms' => round(($broadcastTime - $startTime) * 1000, 2),
-                ],
             ];
         } catch (QueryException $e) {
             if ($this->isDuplicateEntryException($e)) {

@@ -1,11 +1,15 @@
 <?php
 
 namespace App\Services;
+
+use App\Models\Device;
+use App\Models\Telemetry;
 use App\Services\DeviceCommandService;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
-    
     public function __construct(
         protected ThresholdService $thresholdService,
         protected DeviceStatusService $deviceStatusService,
@@ -17,7 +21,7 @@ class DashboardService
     /**
      * Load and assemble all data required for the main DeviceStatus Dashboard.
      */
-    public function getDashboardData(string $alertSeverityFilter = 'all'): array
+    public function getDashboardData(string $alertSeverityFilter = 'all', bool $includeCharts = true): array
     {
         $thresholds = $this->thresholdService->getAllThresholds();
         $devices = $this->telemetryService->getDevicesWithTelemetries(2);
@@ -25,8 +29,7 @@ class DashboardService
         $device = $devices->first();
         $latestTelemetry = $device?->latestTelemetry;
 
-        // Bounded query for telemetry history (max 100 entries, index-ordered)
-        $telemetryHistory = $this->telemetryService->getTelemetryHistory($device, 100);
+        $telemetryHistory = $includeCharts ? $this->getTelemetryHistoryForDashboard($device) : collect();
 
         $deviceStatusLabel = $this->deviceStatusService->getDeviceStatusLabel($device);
         $deviceStatusType = $this->deviceStatusService->getDeviceStatusType($device);
@@ -96,12 +99,12 @@ class DashboardService
         $waterFlowStatusType = $this->thresholdService->resolveStatusType($wFlowVal !== null ? (float) $wFlowVal : null, $thresholds['waterFlowLow'], $thresholds['waterFlowHigh']);
 
         // Chart Data & Metrics
-        $telemetryOverviewSeries = $this->telemetryService->buildTelemetryOverviewSeries($telemetryHistory);
-        $telemetryOverviewCategories = $this->telemetryService->buildTelemetryOverviewCategories($telemetryHistory);
-        $analyticsSeries = $this->telemetryService->buildAnalyticsSeries($telemetryHistory);
-        $analyticsCategories = $this->telemetryService->buildAnalyticsCategories($telemetryHistory);
+        $telemetryOverviewSeries = $includeCharts ? $this->telemetryService->buildTelemetryOverviewSeries($telemetryHistory) : [];
+        $telemetryOverviewCategories = $includeCharts ? $this->telemetryService->buildTelemetryOverviewCategories($telemetryHistory) : [];
+        $analyticsSeries = $includeCharts ? $this->telemetryService->buildAnalyticsSeries($telemetryHistory) : [];
+        $analyticsCategories = $includeCharts ? $this->telemetryService->buildAnalyticsCategories($telemetryHistory) : [];
 
-        $hasChartTelemetry = collect(array_merge($telemetryOverviewSeries, $analyticsSeries))
+        $hasChartTelemetry = $includeCharts && collect(array_merge($telemetryOverviewSeries, $analyticsSeries))
             ->contains(fn (array $series): bool => ! empty($series['data']));
 
         $alerts = $device ? $this->alertService->getActiveAlertsForDevice($device, $alertSeverityFilter) : [];
@@ -187,5 +190,34 @@ class DashboardService
             'deviceCards' => $deviceCards,
             'actuatorCards' => $actuatorCards,
         ]);
+    }
+
+    protected function getTelemetryHistoryForDashboard(?Device $device): Collection
+    {
+        if ($device === null) {
+            return collect();
+        }
+
+        $cacheKey = 'dashboard.telemetry-history.'.$device->id;
+
+        $cachedPayload = Cache::remember($cacheKey, 5, function () use ($device): array {
+            return $this->telemetryService->getTelemetryHistory($device, 100)
+                ->map(fn (Telemetry $telemetry): array => $telemetry->getAttributes())
+                ->values()
+                ->all();
+        });
+
+        if (! is_array($cachedPayload)) {
+            Cache::forget($cacheKey);
+
+            $cachedPayload = $this->telemetryService->getTelemetryHistory($device, 100)
+                ->map(fn (Telemetry $telemetry): array => $telemetry->getAttributes())
+                ->values()
+                ->all();
+
+            Cache::put($cacheKey, $cachedPayload, 5);
+        }
+
+        return Telemetry::hydrate($cachedPayload);
     }
 }

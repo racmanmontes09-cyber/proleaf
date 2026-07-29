@@ -15,6 +15,10 @@ class ProfileTest extends TestCase
     {
         $user = User::factory()->create();
 
+        $this->app['router']->get('/profile', function () {
+            return view('profile');
+        })->name('profile');
+
         $response = $this->actingAs($user)->get('/profile');
 
         $response

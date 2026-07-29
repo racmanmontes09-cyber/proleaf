@@ -180,10 +180,13 @@ class DeviceStatus extends Component
 
     public string $alertSeverityFilter = self::ALERT_SEVERITY_FILTER_ALL;
 
-    public function render(DashboardService $dashboardService, AlertService $alertService)
+    public function mount(DashboardService $dashboardService): void
     {
         $this->refreshDashboard($dashboardService, false);
+    }
 
+    public function render(DashboardService $dashboardService, AlertService $alertService)
+    {
         return view('livewire.dashboard.device-status', [
             'device' => $this->device,
             'telemetryAlerts' => $alertService->filteredTelemetryAlerts($this->alerts, $this->alertSeverityFilter),
@@ -192,13 +195,7 @@ class DeviceStatus extends Component
 
     public function refreshDashboard(DashboardService $dashboardService, bool $dispatchChartUpdate = true): void
     {
-        $data = $dashboardService->getDashboardData($this->alertSeverityFilter);
-
-        foreach ($data as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->{$key} = $value;
-            }
-        }
+        $this->applyDashboardData($dashboardService->getDashboardData($this->alertSeverityFilter, true));
 
         if ($dispatchChartUpdate) {
             $this->dispatch('dashboard-chart-data-updated',
@@ -211,6 +208,22 @@ class DeviceStatus extends Component
                 hasChartTelemetry: $this->hasChartTelemetry,
                 hasYieldData: $this->hasYieldData,
             );
+        }
+    }
+
+    public function refreshDashboardLight(DashboardService $dashboardService): void
+    {
+        // Polling only updates alerts, heartbeat, device status, command queue, settings
+        // Telemetry charts are NOT reloaded through Livewire polling
+        $this->applyDashboardData($dashboardService->getDashboardData($this->alertSeverityFilter, false));
+    }
+
+    protected function applyDashboardData(array $data): void
+    {
+        foreach ($data as $key => $value) {
+            if (property_exists($this, $key)) {
+                $this->{$key} = $value;
+            }
         }
     }
 

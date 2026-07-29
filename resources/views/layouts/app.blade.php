@@ -60,22 +60,48 @@
     </head>
     <body class="h-full font-sans antialiased bg-[#F8FAF8] text-[#1B4332] bg-grid-pattern selection:bg-[#95D5B2] selection:text-[#1B4332] overflow-x-hidden">
         
-        <!-- Root App State Wrapper -->
-        <div x-data="{ sidebarOpen: false, activeTab: 'dashboard' }" class="min-h-screen bg-[#F8FAF8] relative overflow-x-hidden">
-            
-            <!-- Livewire Navigation Component (Fixed Desktop Sidebar, Mobile Drawer & Top Navbar Header) -->
-            <livewire:layout.navigation />
+        <div class="min-h-screen bg-[#F8FAF8] relative overflow-x-hidden">
+            <div class="flex flex-col min-h-screen min-w-0">
+                <header class="w-full bg-white/95 border-b border-[#2D6A4F]/10 shadow-sm sticky top-0 z-40 backdrop-blur-sm">
+                    <div class="max-w-[1680px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 py-3 md:py-4 flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="rounded-2xl bg-[#2D6A4F] px-3 py-2 text-white text-xs font-semibold uppercase tracking-[0.24em]">L.E.A.F.</div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-[#1B4332] truncate">Project L.E.A.F.</p>
+                                <p class="text-xs text-[#1B4332]/70 truncate">Hydroponic Automation</p>
+                            </div>
+                        </div>
 
-            <!-- Main Content Area (Offset by lg:pl-64 for fixed 256px sidebar, pt-20 for fixed 64px header) -->
-            <div class="lg:pl-64 pt-20 flex flex-col min-h-screen min-w-0 transition-all duration-200">
-                
-                <!-- Main Page Slot Container -->
+                        <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-[#1B4332]/85">
+                            <a href="{{ route('dashboard') }}" class="px-3 py-2 rounded-2xl transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-[#2D6A4F] text-white' : 'hover:bg-[#95D5B2]/20' }}">Dashboard</a>
+                            <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Devices</span>
+                            <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Alerts</span>
+                            @if(
+                                method_exists(
+                                    
+                                    Illuminate\Support\Facades\Route::class,
+                                    'has'
+                                ) && Route::has('settings')
+                            )
+                                <a href="{{ route('settings') }}" class="px-3 py-2 rounded-2xl transition duration-150 {{ request()->routeIs('settings') ? 'bg-[#2D6A4F] text-white' : 'hover:bg-[#95D5B2]/20' }}">Settings</a>
+                            @else
+                                <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Settings</span>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
+                                @csrf
+                                <button type="submit" class="px-3 py-2 rounded-2xl bg-[#2D6A4F] text-white text-sm font-semibold transition duration-150 hover:bg-[#1B4332]">Logout</button>
+                            </form>
+                        </div>
+                    </div>
+                </header>
+
                 <main class="flex-1 w-full max-w-[1680px] mx-auto min-w-0 px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
                     {{ $slot }}
                 </main>
-
             </div>
-
         </div>
 
     </body>

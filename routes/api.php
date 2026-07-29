@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DeviceCommandController;
-use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\TelemetryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,4 +18,4 @@ Route::get('/devices/commands', [DeviceCommandController::class, 'index'])
     ->middleware(['device.auth', 'throttle:device-commands']);
 Route::patch('/devices/commands/{commandId}', [DeviceCommandController::class, 'update'])
     ->middleware(['device.auth', 'throttle:device-commands']);
-Route::get('/device/settings', [SystemSettingsController::class, 'index']);
+Route::get('/device/settings', [\App\Http\Controllers\Api\SystemSettingsController::class, 'index']);

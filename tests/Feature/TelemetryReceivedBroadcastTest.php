@@ -14,6 +14,11 @@ class TelemetryReceivedBroadcastTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_broadcasting_defaults_to_pusher_connection(): void
+    {
+        $this->assertSame('pusher', config('broadcasting.default'));
+    }
+
     public function test_telemetry_received_event_broadcasts_on_telemetry_channel(): void
     {
         $device = Device::create([

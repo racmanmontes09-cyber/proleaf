@@ -2,16 +2,12 @@
 
 namespace App\Providers;
 
-use App\Models\AuditLog;
 use App\Models\Device;
 use App\Models\DeviceCommand;
-use App\Models\SystemSetting;
 use App\Models\Telemetry;
 use App\Models\User;
-use App\Policies\AuditLogPolicy;
 use App\Policies\DeviceCommandPolicy;
 use App\Policies\DevicePolicy;
-use App\Policies\SystemSettingPolicy;
 use App\Policies\TelemetryPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -23,9 +19,7 @@ class AuthServiceProvider extends ServiceProvider
         Device::class => DevicePolicy::class,
         Telemetry::class => TelemetryPolicy::class,
         DeviceCommand::class => DeviceCommandPolicy::class,
-        SystemSetting::class => SystemSettingPolicy::class,
         User::class => UserPolicy::class,
-        AuditLog::class => AuditLogPolicy::class,
     ];
 
     public function boot(): void

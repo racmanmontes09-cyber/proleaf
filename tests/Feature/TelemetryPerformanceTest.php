@@ -27,7 +27,6 @@ class TelemetryPerformanceTest extends TestCase
 
     public function test_sub_30ms_backend_processing_latency_per_telemetry_post(): void
     {
-        Broadcast::fake();
         Event::fake([TelemetryReceived::class]);
 
         $device = Device::create([
@@ -70,7 +69,6 @@ class TelemetryPerformanceTest extends TestCase
 
     public function test_high_throughput_batch_telemetry_stores_1000_records_cleanly(): void
     {
-        Broadcast::fake();
         Event::fake([TelemetryReceived::class]);
 
         $device = Device::create([

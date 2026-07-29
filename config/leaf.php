@@ -8,4 +8,8 @@ return [
             'commands_per_minute' => 60,
         ],
     ],
+    'simulation' => [
+        'device_token' => env('LEAF_SIMULATION_DEVICE_TOKEN'),
+        'device_tokens' => env('LEAF_SIMULATION_DEVICE_TOKENS'),
+    ],
 ];

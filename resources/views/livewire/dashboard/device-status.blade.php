@@ -1,10 +1,8 @@
-<div wire:poll.visible.15s="refreshDashboard" class="space-y-8 min-w-0" x-data="{
-    hasChartTelemetry: @js($hasChartTelemetry),
-    hasYieldData: @js($hasYieldData),
+<div wire:poll.visible.5s="refreshDashboardLight" class="space-y-8 min-w-0" x-data="{
+    hasChartTelemetry: @json($hasChartTelemetry),
+    hasYieldData: @json($hasYieldData),
     initialized: false,
-    echoSubscribed: false,
-    pendingPoints: [],
-    rafId: null,
+    subscribed: false,
     charts: {
         telemetryOverview: null,
         analytics: null,
@@ -24,118 +22,102 @@
     },
     initialChartPayload() {
         return {
-            telemetryOverviewSeries: @js($telemetryOverviewSeries),
-            telemetryOverviewCategories: @js($telemetryOverviewCategories),
-            analyticsSeries: @js($analyticsSeries),
-            analyticsCategories: @js($analyticsCategories),
-            yieldSeries: @js($yieldSeries),
-            yieldLabels: @js($yieldLabels),
-            hasChartTelemetry: @js($hasChartTelemetry),
-            hasYieldData: @js($hasYieldData)
+            telemetryOverviewSeries: @json($telemetryOverviewSeries),
+            telemetryOverviewCategories: @json($telemetryOverviewCategories),
+            analyticsSeries: @json($analyticsSeries),
+            analyticsCategories: @json($analyticsCategories),
+            yieldSeries: @json($yieldSeries),
+            yieldLabels: @json($yieldLabels),
+            hasChartTelemetry: @json($hasChartTelemetry),
+            hasYieldData: @json($hasYieldData),
         };
     },
     initApexCharts() {
         this.$nextTick(() => {
             this.renderOrUpdateCharts(this.initialChartPayload());
-            this.subscribeEcho();
+            this.listenToPusher();
         });
     },
-    subscribeEcho() {
-        if (this.echoSubscribed) return;
-        if (typeof window.Echo !== 'undefined') {
+    listenToPusher() {
+        if (typeof window.Echo !== 'undefined' && !this.subscribed) {
+            this.subscribed = true;
             const channel = window.Echo.channel('telemetry');
-            const handler = (event) => this.handleTelemetryReceived(event);
-            channel.listen('TelemetryReceived', handler);
+            const handler = (data) => {
+                this.handleTelemetryReceived(data);
+            };
             channel.listen('.TelemetryReceived', handler);
-            this.echoSubscribed = true;
+            channel.listen('TelemetryReceived', handler);
         }
     },
-    handleTelemetryReceived(event) {
-        if (!event) return;
-        this.pendingPoints.push(event);
-
-        if (!this.rafId) {
-            this.rafId = requestAnimationFrame(() => {
-                this.processPendingPoints();
-                this.rafId = null;
-            });
-        }
-    },
-    processPendingPoints() {
-        if (this.pendingPoints.length === 0) return;
-
-        const points = [...this.pendingPoints];
-        this.pendingPoints = [];
-
+    handleTelemetryReceived(data) {
+        if (!data) return;
         this.hasChartTelemetry = true;
 
-        points.forEach(event => {
-            let timeLabel = '';
-            let dateLabel = '';
-            if (event.measured_at) {
-                const d = new Date(event.measured_at);
-                if (!isNaN(d.getTime())) {
-                    const hours = String(d.getHours()).padStart(2, '0');
-                    const minutes = String(d.getMinutes()).padStart(2, '0');
-                    timeLabel = `${hours}:${minutes}`;
-                    dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }
+        let timeLabel = '';
+        if (data.measured_at) {
+            const dt = new Date(data.measured_at);
+            if (!isNaN(dt.getTime())) {
+                timeLabel = dt.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } else {
+                timeLabel = data.measured_at;
             }
-            if (!timeLabel) {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                timeLabel = `${hours}:${minutes}`;
-                dateLabel = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            }
+        } else {
+            timeLabel = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
 
-            // Rolling window capped at 100 items
-            this.overviewData.categories.push(timeLabel);
-            this.overviewData.ph.push(event.ph !== null && event.ph !== undefined ? parseFloat(event.ph) : null);
-            this.overviewData.waterTemp.push(event.water_temperature !== null && event.water_temperature !== undefined ? parseFloat(event.water_temperature) : null);
-            this.overviewData.ec.push(event.ec !== null && event.ec !== undefined ? parseFloat(event.ec) : null);
+        const ph = data.ph !== null && data.ph !== undefined ? parseFloat(data.ph) : null;
+        const wTemp = data.water_temperature !== null && data.water_temperature !== undefined ? parseFloat(data.water_temperature) : null;
+        const ec = data.ec !== null && data.ec !== undefined ? parseFloat(data.ec) : null;
+        const aTemp = data.air_temperature !== null && data.air_temperature !== undefined ? parseFloat(data.air_temperature) : null;
+        const hum = data.humidity !== null && data.humidity !== undefined ? parseFloat(data.humidity) : null;
+        const wFlow = data.water_flow !== null && data.water_flow !== undefined ? parseFloat(data.water_flow) : null;
 
-            if (this.overviewData.categories.length > 100) {
-                this.overviewData.categories.shift();
-                this.overviewData.ph.shift();
-                this.overviewData.waterTemp.shift();
-                this.overviewData.ec.shift();
-            }
+        // 1. Dashboard Overview Data
+        this.overviewData.categories.push(timeLabel);
+        this.overviewData.ph.push(ph);
+        this.overviewData.waterTemp.push(wTemp);
+        this.overviewData.ec.push(ec);
 
-            this.analyticsData.categories.push(dateLabel);
-            this.analyticsData.airTemp.push(event.air_temperature !== null && event.air_temperature !== undefined ? parseFloat(event.air_temperature) : null);
-            this.analyticsData.humidity.push(event.humidity !== null && event.humidity !== undefined ? parseFloat(event.humidity) : null);
-            this.analyticsData.waterFlow.push(event.water_flow !== null && event.water_flow !== undefined ? parseFloat(event.water_flow) : null);
+        if (this.overviewData.categories.length > 100) {
+            this.overviewData.categories.shift();
+            this.overviewData.ph.shift();
+            this.overviewData.waterTemp.shift();
+            this.overviewData.ec.shift();
+        }
 
-            if (this.analyticsData.categories.length > 100) {
-                this.analyticsData.categories.shift();
-                this.analyticsData.airTemp.shift();
-                this.analyticsData.humidity.shift();
-                this.analyticsData.waterFlow.shift();
-            }
-        });
-
-        // Batch update ApexCharts instances once per RAF
         if (this.charts.telemetryOverview) {
+            this.charts.telemetryOverview.updateSeries([
+                { name: 'Water pH', data: [...this.overviewData.ph] },
+                { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
+                { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] }
+            ], true);
             this.charts.telemetryOverview.updateOptions({
-                xaxis: { categories: [...this.overviewData.categories] },
-                series: [
-                    { name: 'Water pH', data: [...this.overviewData.ph] },
-                    { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
-                    { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] }
-                ]
-            }, false, false);
+                xaxis: { categories: [...this.overviewData.categories] }
+            }, false, true);
+        }
+
+        // 2. Analytics Data
+        this.analyticsData.categories.push(timeLabel);
+        this.analyticsData.airTemp.push(aTemp);
+        this.analyticsData.humidity.push(hum);
+        this.analyticsData.waterFlow.push(wFlow);
+
+        if (this.analyticsData.categories.length > 100) {
+            this.analyticsData.categories.shift();
+            this.analyticsData.airTemp.shift();
+            this.analyticsData.humidity.shift();
+            this.analyticsData.waterFlow.shift();
         }
 
         if (this.charts.analytics) {
+            this.charts.analytics.updateSeries([
+                { name: 'Air Temp (°C)', type: 'column', data: [...this.analyticsData.airTemp] },
+                { name: 'Humidity (%)', type: 'line', data: [...this.analyticsData.humidity] },
+                { name: 'Water Flow (L/min)', type: 'line', data: [...this.analyticsData.waterFlow] }
+            ], true);
             this.charts.analytics.updateOptions({
-                labels: [...this.analyticsData.categories],
-                series: [
-                    { name: 'Air Temp (°C)', type: 'column', data: [...this.analyticsData.airTemp] },
-                    { name: 'Humidity (%)', type: 'line', data: [...this.analyticsData.humidity] },
-                    { name: 'Water Flow (L/min)', type: 'line', data: [...this.analyticsData.waterFlow] }
-                ]
-            }, false, false);
+                xaxis: { categories: [...this.analyticsData.categories] }
+            }, false, true);
         }
     },
     updateApexCharts(payload) {
@@ -143,9 +125,7 @@
         this.$nextTick(() => this.renderOrUpdateCharts(payload || this.initialChartPayload()));
     },
     renderOrUpdateCharts(payload) {
-        if (typeof ApexCharts === 'undefined') {
-            return;
-        }
+        if (typeof ApexCharts === 'undefined') return;
 
         const telemetryOverviewSeries = payload.telemetryOverviewSeries || [];
         const telemetryOverviewCategories = payload.telemetryOverviewCategories || [];
@@ -153,7 +133,7 @@
         const analyticsCategories = payload.analyticsCategories || [];
         const yieldSeries = payload.yieldSeries || [];
         const yieldLabels = payload.yieldLabels || [];
-        
+
         if (payload.hasChartTelemetry !== undefined) {
             this.hasChartTelemetry = Boolean(payload.hasChartTelemetry);
         }
@@ -232,13 +212,34 @@
     }
 }" x-init="initApexCharts()" x-effect="activeTab;" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)">
 
-   
+ 
 
     <!-- ========================================== -->
     <!-- TAB CONTENT 1: DASHBOARD OVERVIEW           -->
     <!-- ========================================== -->
     <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
         
+        <!-- SYSTEM HEALTH BANNER -->
+        <div class="min-w-0">
+            @php
+                $activeAlertCount = is_countable($telemetryAlerts) ? count($telemetryAlerts) : 0;
+                $bannerStatusType = 'offline';
+                if (isset($deviceStatusType) && $deviceStatusType === 'online') {
+                    $bannerStatusType = 'optimal';
+                } elseif (isset($deviceStatusType) && $deviceStatusType === 'offline') {
+                    $bannerStatusType = 'critical';
+                } elseif (isset($deviceStatusType) && $deviceStatusType === 'standby') {
+                    $bannerStatusType = 'warning';
+                }
+            @endphp
+            <x-health-banner
+                :device-status-label="$deviceStatusLabel ?? 'Unknown'"
+                :last-seen-label="$lastSeenLabel ?? 'Pending'"
+                :active-alert-count="$activeAlertCount"
+                :status-type="$bannerStatusType"
+            />
+        </div>
+
         <!-- KPI METRICS GRID -->
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">
             

@@ -43,7 +43,6 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'Users: Create', 'slug' => 'users.create'],
             ['name' => 'Users: Update', 'slug' => 'users.update'],
             ['name' => 'Users: Delete', 'slug' => 'users.delete'],
-            ['name' => 'Audit: View', 'slug' => 'audit.view'],
             ['name' => 'OTA: Deploy', 'slug' => 'ota.deploy'],
             ['name' => 'System: Manage', 'slug' => 'system.manage'],
         ];

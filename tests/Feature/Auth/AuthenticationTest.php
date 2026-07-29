@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Livewire\Actions\Logout;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;
@@ -54,7 +55,7 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_navigation_menu_can_be_rendered(): void
+    public function test_dashboard_screen_can_be_rendered(): void
     {
         $user = User::factory()->create();
 
@@ -64,7 +65,8 @@ class AuthenticationTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeVolt('layout.navigation');
+            ->assertSee('Project L.E.A.F.')
+            ->assertSee('ESP32 Controller Node');
     }
 
     public function test_users_can_logout(): void
@@ -73,13 +75,8 @@ class AuthenticationTest extends TestCase
 
         $this->actingAs($user);
 
-        $component = Volt::test('layout.navigation');
-
-        $component->call('logout');
-
-        $component
-            ->assertHasNoErrors()
-            ->assertRedirect('/');
+        $logoutAction = new Logout();
+        $logoutAction();
 
         $this->assertGuest();
     }
