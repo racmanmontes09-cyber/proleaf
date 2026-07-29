@@ -1,4 +1,5 @@
 <div wire:poll.visible.5s="refreshDashboardLight" class="space-y-8 min-w-0" x-data="{
+    activeTab: 'dashboard',
     hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
     hasYieldData: {{ json_encode($hasYieldData) }},
     initialized: false,
@@ -210,7 +211,7 @@
             this.initialized = true;
         }
     }
-}" x-init="initApexCharts()" x-effect="activeTab;" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)">
+}" x-init="initApexCharts()" x-effect="activeTab; $dispatch('active-tab-changed', activeTab);" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)" x-on:switch-tab.window="activeTab = $event.detail">
 
  
 
@@ -219,32 +220,7 @@
     <!-- ========================================== -->
     <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
         
-        <!-- SYSTEM HEALTH BANNER -->
-        <div class="min-w-0">
-            @php
-                $activeAlertCount = is_countable($telemetryAlerts) ? count($telemetryAlerts) : 0;
-                $bannerStatusType = 'offline';
-                if (isset($deviceStatusType) && $deviceStatusType === 'online') {
-                    $bannerStatusType = 'optimal';
-                } elseif (isset($deviceStatusType) && $deviceStatusType === 'offline') {
-                    $bannerStatusType = 'critical';
-                } elseif (isset($deviceStatusType) && $deviceStatusType === 'standby') {
-                    $bannerStatusType = 'warning';
-                }
-            @endphp
-            <div class="rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm p-6">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm font-semibold text-[#1B4332]">{{ $deviceStatusLabel ?? 'Unknown' }}</p>
-                        <p class="text-xs text-[#2D6A4F]/80">{{ $lastSeenLabel ?? 'Pending' }}</p>
-                    </div>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide {{ $bannerStatusType === 'optimal' ? 'bg-emerald-100 text-emerald-700' : ($bannerStatusType === 'critical' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700') }}">
-                        {{ ucfirst($bannerStatusType) }}
-                    </span>
-                </div>
-                <p class="mt-4 text-sm text-[#2D6A4F]/80">Active alerts: {{ $activeAlertCount }}</p>
-            </div>
-        </div>
+        
 
         <!-- KPI METRICS GRID -->
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">

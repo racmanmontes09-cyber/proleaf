@@ -17,6 +17,19 @@
                 'dashboard' => 'Dashboard | Project L.E.A.F.',
                 'profile' => 'Profile | Project L.E.A.F.',
             ];
+
+            $user = auth()->user();
+            $userName = $user?->name ?? 'Administrator';
+            $initials = trim(collect(explode(' ', $userName))->map(fn ($part) => strtoupper(substr($part, 0, 1)))->join('')) ?: 'PL';
+            $notificationCount = 0;
+            if ($user && \Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                try {
+                    $notificationCount = $user->unreadNotifications()->count();
+                } catch (\Throwable $e) {
+                    $notificationCount = 0;
+                }
+            }
+            $esp32Label = 'ESP32 Online';
         @endphp
         <title>{{ $pageTitles[$currentRoute] ?? 'Project L.E.A.F. | IoT-Based Hydroponic Cultivation System' }}</title>
 
@@ -62,38 +75,139 @@
         
         <div class="min-h-screen bg-[#F8FAF8] relative overflow-x-hidden">
             <div class="flex flex-col min-h-screen min-w-0">
-                <header class="w-full bg-white/95 border-b border-[#2D6A4F]/10 shadow-sm sticky top-0 z-40 backdrop-blur-sm">
-                    <div class="max-w-[1680px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 py-3 md:py-4 flex flex-col md:flex-row items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="rounded-2xl bg-[#2D6A4F] px-3 py-2 text-white text-xs font-semibold uppercase tracking-[0.24em]">L.E.A.F.</div>
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-[#1B4332] truncate">Project L.E.A.F.</p>
-                                <p class="text-xs text-[#1B4332]/70 truncate">Hydroponic Automation</p>
+                <header x-data="{ openMobile: false, openProfile: false, currentTab: 'dashboard' }" x-on:switch-tab.window="currentTab = $event.detail" x-on:active-tab-changed.window="currentTab = $event.detail" class="sticky top-0 z-40">
+                    <div class="ispsc-topbar border-b border-[#2D6A4F]/10 shadow-sm backdrop-blur-sm">
+                        <div class="max-w-[1680px] mx-auto flex flex-col gap-4 px-3 py-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 lg:flex-row lg:items-center lg:justify-between">
+                            <div class="flex items-center gap-4 min-w-0 lg:w-[34%]">
+                                <a href="{{ Route::has('dashboard') ? route('dashboard') : url('/') }}" class="flex items-center gap-4 min-w-0">
+                                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2D6A4F] text-white shadow-sm">
+                                        <span class="text-sm font-semibold tracking-[0.28em]">LEAF</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-base font-semibold leading-tight tracking-tight text-[#1B4332]">Project L.E.A.F.</p>
+                                        <p class="truncate text-xs uppercase tracking-[0.24em] text-[#40916C]/80">Hydroponic Automation System</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-between gap-4 lg:w-[62%] lg:justify-end">
+                                <div class="flex items-center gap-6 text-sm font-medium text-[#1B4332]/85">
+                                    <button type="button" class="ispsc-icon-button" aria-label="View notifications">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
+                                        </svg>
+                                        @if($notificationCount > 0)
+                                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#D02670] px-1.5 text-[10px] font-semibold text-white">{{ $notificationCount }}</span>
+                                        @endif
+                                    </button>
+
+                                    <span class="inline-flex items-center gap-2 text-sm text-[#1B4332]/85">
+                                        <span class="h-2.5 w-2.5 rounded-full bg-[#2D6A4F]"></span>
+                                        <span>{{ $esp32Label }}</span>
+                                    </span>
+
+                                    <span class="text-sm text-[#1B4332]/85 whitespace-nowrap" x-text="new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })"></span>
+                                </div>
+
+                                <div class="flex items-center gap-4">
+                                    <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
+                                        @csrf
+                                        <button type="submit" class="text-sm font-semibold text-[#1B4332]/80 transition hover:text-[#2D6A4F]">Logout</button>
+                                    </form>
+
+                                    <div class="relative" x-data="{ openProfile: false }" @click.outside="openProfile = false">
+                                        <button type="button" @click="openProfile = !openProfile"
+                                            class="inline-flex items-center gap-3 rounded-2xl border border-[#2D6A4F]/10 bg-white px-3 py-2 text-sm font-medium text-[#1B4332] transition hover:border-[#2D6A4F]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40"
+                                            aria-haspopup="true" :aria-expanded="openProfile">
+                                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#2D6A4F]/10 text-[#1B4332] font-semibold">{{ $initials }}</span>
+                                            <span class="hidden sm:block text-left">
+                                                <span class="block text-sm font-semibold">{{ $userName }}</span>
+                                                <span class="text-xs text-[#2D6A4C]/70">Administrator</span>
+                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#2D6A4F]/80" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+
+                                        <div x-show="openProfile"
+                                            x-transition.opacity.scale.origin-top.right
+                                            class="absolute right-0 z-10 mt-3 w-72 origin-top-right rounded-2xl border border-[#2D6A4F]/10 bg-white p-3 shadow-xl ring-1 ring-black/5 focus:outline-none"
+                                            style="display: none;">
+                                            <div class="space-y-2">
+                                                <a href="#" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Profile</a>
+                                                <a href="#" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Preferences</a>
+                                                <div class="border-t border-[#2D6A4F]/10 pt-3">
+                                                    <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
+                                                        @csrf
+                                                        <button type="submit" class="w-full rounded-2xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1B4332] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Logout</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-[#1B4332]/85">
-                            <a href="{{ route('dashboard') }}" class="px-3 py-2 rounded-2xl transition duration-150 {{ request()->routeIs('dashboard') ? 'bg-[#2D6A4F] text-white' : 'hover:bg-[#95D5B2]/20' }}">Dashboard</a>
-                            <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Devices</span>
-                            <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Alerts</span>
-                            @if(
-                                method_exists(
-                                    
-                                    Illuminate\Support\Facades\Route::class,
-                                    'has'
-                                ) && Route::has('settings')
-                            )
-                                <a href="{{ route('settings') }}" class="px-3 py-2 rounded-2xl transition duration-150 {{ request()->routeIs('settings') ? 'bg-[#2D6A4F] text-white' : 'hover:bg-[#95D5B2]/20' }}">Settings</a>
-                            @else
-                                <span class="px-3 py-2 rounded-2xl text-[#1B4332]/60 bg-[#F1F5F2]">Settings</span>
-                            @endif
+                    <div class="ispsc-secondary border-b border-[#145c44] shadow-sm">
+                        <div class="max-w-[1680px] mx-auto flex items-center justify-between gap-4 px-3 py-2 sm:px-4 lg:px-6 xl:px-8 2xl:px-10">
+                            <nav class="hidden lg:flex flex-wrap items-center justify-center gap-10 text-sm font-semibold tracking-[0.08em] text-[#F8FAF5]" aria-label="Primary navigation">
+                                @php
+                                    $menuItems = [
+                                        ['label' => 'Dashboard', 'route' => 'dashboard', 'tab' => 'dashboard'],
+                                        ['label' => 'Monitoring', 'route' => 'monitoring', 'tab' => 'monitoring'],
+                                        ['label' => 'Analytics', 'route' => 'analytics', 'tab' => 'analytics'],
+                                        ['label' => 'Devices', 'route' => 'devices', 'tab' => 'devices'],
+                                        ['label' => 'Alerts', 'route' => 'alerts', 'tab' => 'alerts'],
+                                        ['label' => 'Reports', 'route' => 'reports', 'tab' => 'reports'],
+                                        ['label' => 'Settings', 'route' => 'settings', 'tab' => 'settings'],
+                                    ];
+                                @endphp
+                                @foreach ($menuItems as $item)
+                                    @php
+                                        $routeExists = Route::has($item['route']);
+                                        $tabKey = $item['tab'];
+                                    @endphp
+                                    <a href="{{ $routeExists ? route($item['route']) : '#' }}"
+                                        @click.prevent="$dispatch('switch-tab', '{{ $tabKey }}')"
+                                        class="transition duration-150 hover:text-[#95D5B2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#95D5B2]/30 cursor-pointer"
+                                        :class="currentTab === '{{ $tabKey }}' ? 'text-[#95D5B2] border-b-2 border-[#95D5B2] pb-1' : 'text-[#F8FAF5]/90 border-b-2 border-transparent pb-1'"
+                                        :aria-current="currentTab === '{{ $tabKey }}' ? 'page' : 'false'">
+                                        {{ $item['label'] }}
+                                    </a>
+                                @endforeach
+                            </nav>
+
+                            <button type="button" @click="openMobile = !openMobile"
+                                class="inline-flex items-center gap-2 rounded-2xl border border-[#95D5B2]/20 bg-[#14442d] px-3 py-2 text-sm font-semibold text-[#F8FAF5] transition hover:border-[#95D5B2]/40 hover:bg-[#125339] lg:hidden"
+                                aria-label="Toggle menu"
+                                :aria-expanded="openMobile">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                                Menu
+                            </button>
                         </div>
 
-                        <div class="flex items-center gap-3">
-                            <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
-                                @csrf
-                                <button type="submit" class="px-3 py-2 rounded-2xl bg-[#2D6A4F] text-white text-sm font-semibold transition duration-150 hover:bg-[#1B4332]">Logout</button>
-                            </form>
+                        <div x-show="openMobile" x-transition x-cloak class="lg:hidden bg-[#0f5132]">
+                            <div class="max-w-[1680px] mx-auto px-3 py-3 sm:px-4 lg:px-6">
+                                <nav class="space-y-2 text-sm font-semibold tracking-[0.08em] text-[#F8FAF5]" aria-label="Mobile navigation">
+                                    @foreach ($menuItems as $item)
+                                        @php
+                                            $routeExists = Route::has($item['route']);
+                                            $tabKey = $item['tab'];
+                                        @endphp
+                                        <a href="{{ $routeExists ? route($item['route']) : '#' }}"
+                                            @click.prevent="$dispatch('switch-tab', '{{ $tabKey }}'); openMobile = false"
+                                            class="block rounded-2xl px-4 py-3 transition duration-150 cursor-pointer"
+                                            :class="currentTab === '{{ $tabKey }}' ? 'bg-[#125339] text-[#F8FAF5]' : 'text-[#F8FAF5]/90 hover:bg-[#14442d]'"
+                                            :aria-current="currentTab === '{{ $tabKey }}' ? 'page' : 'false'">
+                                            {{ $item['label'] }}
+                                        </a>
+                                    @endforeach
+                                </nav>
+                            </div>
                         </div>
                     </div>
                 </header>
