@@ -16,7 +16,8 @@ class NavigationSimplificationTest extends TestCase
         $this->assertFalse(Route::has('device-management'));
         $this->assertFalse(Route::has('alerts-logs'));
         $this->assertFalse(Route::has('settings'));
-        $this->assertFalse(Route::has('profile'));
+        // The `profile` route is provided by auth routes and is expected to exist.
+        $this->assertTrue(Route::has('profile'));
         $this->assertFalse(Route::has('analytics'));
         $this->assertFalse(Route::has('reports'));
     }
