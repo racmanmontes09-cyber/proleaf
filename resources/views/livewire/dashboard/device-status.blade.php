@@ -1,13 +1,11 @@
 <div wire:poll.visible.5s="refreshDashboardLight" class="space-y-8 min-w-0" x-data="{
     activeTab: 'dashboard',
     hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
-    hasYieldData: {{ json_encode($hasYieldData) }},
     initialized: false,
     subscribed: false,
     charts: {
         telemetryOverview: null,
-        analytics: null,
-        yieldDistribution: null
+        analytics: null
     },
     overviewData: {
         categories: [],
@@ -27,10 +25,7 @@
             telemetryOverviewCategories: {{ json_encode($telemetryOverviewCategories) }},
             analyticsSeries: {{ json_encode($analyticsSeries) }},
             analyticsCategories: {{ json_encode($analyticsCategories) }},
-            yieldSeries: {{ json_encode($yieldSeries) }},
-            yieldLabels: {{ json_encode($yieldLabels) }},
             hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
-            hasYieldData: {{ json_encode($hasYieldData) }},
         };
     },
     initApexCharts() {
@@ -132,14 +127,10 @@
         const telemetryOverviewCategories = payload.telemetryOverviewCategories || [];
         const analyticsSeries = payload.analyticsSeries || [];
         const analyticsCategories = payload.analyticsCategories || [];
-        const yieldSeries = payload.yieldSeries || [];
-        const yieldLabels = payload.yieldLabels || [];
+        // yield charts removed per scope limitations
 
         if (payload.hasChartTelemetry !== undefined) {
             this.hasChartTelemetry = Boolean(payload.hasChartTelemetry);
-        }
-        if (payload.hasYieldData !== undefined) {
-            this.hasYieldData = Boolean(payload.hasYieldData);
         }
 
         if (!this.initialized) {
@@ -195,18 +186,7 @@
                 this.charts.analytics.render();
             }
 
-            const yieldEl = document.querySelector('#yieldDistributionChart');
-            if (yieldEl && !this.charts.yieldDistribution) {
-                const yieldOptions = {
-                    series: yieldSeries.length ? yieldSeries : [],
-                    chart: { type: 'donut', height: 260, fontFamily: 'Inter, sans-serif' },
-                    labels: yieldLabels.length ? yieldLabels : [],
-                    colors: ['#2D6A4F', '#40916C', '#74C69D', '#B7E4C7'],
-                    legend: { position: 'bottom' }
-                };
-                this.charts.yieldDistribution = new ApexCharts(yieldEl, yieldOptions);
-                this.charts.yieldDistribution.render();
-            }
+            // yieldDistribution chart intentionally removed per scope
 
             this.initialized = true;
         }
@@ -568,7 +548,7 @@
     <div x-show="activeTab === 'analytics'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
         
         <x-leaf.page-header 
-            title="Historical Telemetry & Crop Analytics" 
+            title="Historical Telemetry & Analytics" 
             subtitle="Deep historical insights into environmental variables, VPD trends, and nutrient balance."
             badge="Interactive Charts"
         />
@@ -621,10 +601,10 @@
                     </div>
                 </div>
 
-                <div class="p-6 rounded-3xl bg-[#1B4332] text-white space-y-3 shadow-lg min-w-0">
-                    <span class="text-xs font-mono text-[#95D5B2] uppercase tracking-wider block">🌾 CROP GROWTH PHASE</span>
-                    <h4 class="text-lg font-bold text-white">Waiting for crop telemetry</h4>
-                    <p class="text-xs text-[#95D5B2]/90">Growth-stage and yield metrics will appear once historical crop data is available.</p>
+                <div class="p-6 rounded-3xl bg-[#1B43332] text-white space-y-3 shadow-lg min-w-0">
+                    <span class="text-xs font-mono text-[#95D5B2] uppercase tracking-wider block">Telemetry Overview</span>
+                    <h4 class="text-lg font-bold text-white">Waiting for historical telemetry</h4>
+                    <p class="text-xs text-[#95D5B2]/90">Historical telemetry and trend summaries will appear once sufficient data is available.</p>
                 </div>
             </div>
         </div>
@@ -792,34 +772,21 @@
     <div x-show="activeTab === 'reports'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
         
         <x-leaf.page-header 
-            title="Crop Yield Reports & Data Export" 
-            subtitle="Generate commercial farm productivity reports, nutrient usage audits, and raw CSV data logs."
-            badge="Waiting for reports..."
+            title="Telemetry Reports & Export" 
+            subtitle="Export telemetry history and sensor data trends as CSV for research and compliance."
+            badge="Telemetry"
         />
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 lg:gap-6 min-w-0 items-start">
-            <div class="xl:col-span-8 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0 overflow-hidden flex flex-col justify-between">
-                <h3 class="text-lg font-bold text-[#1B4332]">Yield Distribution by Lettuce Variety</h3>
-                <div wire:ignore id="yieldDistributionChart" class="w-full h-[260px] sm:h-[280px] lg:h-[320px] min-h-[260px] overflow-hidden relative">
-                    <div x-show="!hasYieldData" class="absolute inset-0 flex items-center justify-center text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
-                        Waiting for crop telemetry...
+            <div class="xl:col-span-12 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0 overflow-hidden flex flex-col justify-between">
+                <h3 class="text-lg font-bold text-[#1B4332]">Telemetry History & Sensor Data Trends</h3>
+                <div wire:ignore id="telemetryHistoryChart" class="w-full h-[260px] sm:h-[280px] lg:h-[320px] min-h-[260px] overflow-hidden relative">
+                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
+                        Waiting for telemetry data...
                     </div>
                 </div>
             </div>
 
-            <div class="xl:col-span-4 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0">
-                <h3 class="text-base font-bold text-[#1B4332]">Export Telemetry Logs</h3>
-                <p class="text-xs text-gray-600">Download formatted CSV or PDF reports containing collected telemetry records for research and compliance audit.</p>
-
-                <div class="space-y-3 min-w-0">
-                    <button type="button" class="w-full py-3 rounded-xl bg-[#2D6A4F] text-white text-xs font-bold hover:bg-[#1B4332] transition-colors shadow-sm flex items-center justify-center gap-2">
-                        📄 PDF Export Pending
-                    </button>
-                    <button type="button" class="w-full py-3 rounded-xl bg-[#2D6A4F]/10 text-[#2D6A4F] text-xs font-bold hover:bg-[#2D6A4F] hover:text-white transition-colors flex items-center justify-center gap-2">
-                        📊 CSV Export Pending
-                    </button>
-                </div>
-            </div>
         </div>
 
     </div>

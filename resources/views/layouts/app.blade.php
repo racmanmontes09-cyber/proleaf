@@ -20,6 +20,7 @@
 
             $user = auth()->user();
             $userName = $user?->name ?? 'Administrator';
+            $userRoleLabel = $user?->roles?->first()?->name ?? 'Administrator';
             $initials = trim(collect(explode(' ', $userName))->map(fn ($part) => strtoupper(substr($part, 0, 1)))->join('')) ?: 'PL';
             $notificationCount = 0;
             if ($user && \Illuminate\Support\Facades\Schema::hasTable('notifications')) {
@@ -29,7 +30,12 @@
                     $notificationCount = 0;
                 }
             }
-            $esp32Label = 'ESP32 Online';
+            $profileRoute = Route::has('profile') ? route('profile') : null;
+
+            $latestDevice = \App\Models\Device::query()->latest('last_seen_at')->first();
+            $esp32IsOnline = (bool) ($latestDevice?->is_online ?? false);
+            $esp32Label = $latestDevice ? ($esp32IsOnline ? 'ESP32 Online' : 'ESP32 Offline') : 'ESP32 Offline';
+            $esp32DotClass = $esp32IsOnline ? 'bg-[#2D6A4F]' : 'bg-rose-500';
         @endphp
         <title>{{ $pageTitles[$currentRoute] ?? 'Project L.E.A.F. | IoT-Based Hydroponic Cultivation System' }}</title>
 
@@ -92,17 +98,8 @@
 
                             <div class="flex flex-wrap items-center justify-between gap-4 lg:w-[62%] lg:justify-end">
                                 <div class="flex items-center gap-6 text-sm font-medium text-[#1B4332]/85">
-                                    <button type="button" class="ispsc-icon-button" aria-label="View notifications">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
-                                        </svg>
-                                        @if($notificationCount > 0)
-                                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#D02670] px-1.5 text-[10px] font-semibold text-white">{{ $notificationCount }}</span>
-                                        @endif
-                                    </button>
-
                                     <span class="inline-flex items-center gap-2 text-sm text-[#1B4332]/85">
-                                        <span class="h-2.5 w-2.5 rounded-full bg-[#2D6A4F]"></span>
+                                        <span class="h-2.5 w-2.5 rounded-full {{ $esp32DotClass }}"></span>
                                         <span>{{ $esp32Label }}</span>
                                     </span>
 
@@ -110,20 +107,13 @@
                                 </div>
 
                                 <div class="flex items-center gap-4">
-                                    <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
-                                        @csrf
-                                        <button type="submit" class="text-sm font-semibold text-[#1B4332]/80 transition hover:text-[#2D6A4F]">Logout</button>
-                                    </form>
+                                    <!-- Logout button removed (secured logout handled server-side) -->
 
                                     <div class="relative" x-data="{ openProfile: false }" @click.outside="openProfile = false">
                                         <button type="button" @click="openProfile = !openProfile"
-                                            class="inline-flex items-center gap-3 rounded-2xl border border-[#2D6A4F]/10 bg-white px-3 py-2 text-sm font-medium text-[#1B4332] transition hover:border-[#2D6A4F]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40"
+                                            class="inline-flex items-center gap-2 rounded-2xl bg-white px-2 py-2 text-sm font-medium text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40"
                                             aria-haspopup="true" :aria-expanded="openProfile">
-                                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#2D6A4F]/10 text-[#1B4332] font-semibold">{{ $initials }}</span>
-                                            <span class="hidden sm:block text-left">
-                                                <span class="block text-sm font-semibold">{{ $userName }}</span>
-                                                <span class="text-xs text-[#2D6A4C]/70">Administrator</span>
-                                            </span>
+                                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2D6A4F]/10 text-[#1B4332] font-semibold">{{ $initials }}</span>
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#2D6A4F]/80" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                                             </svg>
@@ -131,11 +121,11 @@
 
                                         <div x-show="openProfile"
                                             x-transition.opacity.scale.origin-top.right
-                                            class="absolute right-0 z-10 mt-3 w-72 origin-top-right rounded-2xl border border-[#2D6A4F]/10 bg-white p-3 shadow-xl ring-1 ring-black/5 focus:outline-none"
+                                            class="absolute right-0 z-10 mt-3 w-56 origin-top-right rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 focus:outline-none"
                                             style="display: none;">
                                             <div class="space-y-2">
-                                                <a href="#" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Profile</a>
-                                                <a href="#" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Preferences</a>
+                                                <a href="{{ $profileRoute ?? '#' }}" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Profile</a>
+                                                <a href="{{ $profileRoute ?? '#' }}" class="block rounded-2xl px-4 py-2 text-sm text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40">Preferences</a>
                                                 <div class="border-t border-[#2D6A4F]/10 pt-3">
                                                     <form method="POST" action="{{ Route::has('logout') ? route('logout') : '/logout' }}">
                                                         @csrf

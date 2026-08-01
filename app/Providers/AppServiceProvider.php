@@ -37,10 +37,6 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute((int) config('leaf.device_api.rate_limits.commands_per_minute', 60))
                 ->by($this->deviceRateLimitKey($request));
         });
-        RateLimiter::for('device-commands', function (Request $request) {
-            return Limit::perMinute((int) config('leaf.device_api.rate_limits.commands_per_minute', 60))
-                ->by($this->deviceRateLimitKey($request));
-        });
 
     }
 

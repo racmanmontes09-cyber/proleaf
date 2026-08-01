@@ -8,18 +8,18 @@
         'online', 'success', 'active', 'running' => 'bg-emerald-100 text-[#1B4332] border-emerald-200',
         'offline', 'error', 'critical' => 'bg-rose-100 text-rose-800 border-rose-200',
         'warning' => 'bg-amber-100 text-amber-900 border-amber-200',
-        'standby', 'idle' => 'bg-gray-100 text-gray-700 border-gray-200',
+        'standby', 'idle' => 'bg-slate-100 text-slate-700 border-slate-200',
         'info' => 'bg-[#95D5B2]/30 text-[#1B4332] border-[#2D6A4F]/20',
-        default => 'bg-gray-100 text-gray-700 border-gray-200',
+        default => 'bg-slate-100 text-slate-700 border-slate-200',
     };
 
     $dotColor = match($type) {
         'online', 'success', 'active', 'running' => 'bg-emerald-500',
         'offline', 'error', 'critical' => 'bg-rose-500',
         'warning' => 'bg-amber-500',
-        'standby', 'idle' => 'bg-gray-400',
+        'standby', 'idle' => 'bg-slate-400',
         'info' => 'bg-[#2D6A4F]',
-        default => 'bg-gray-400',
+        default => 'bg-slate-400',
     };
 
     $defaultLabel = match($type) {
@@ -34,7 +34,7 @@
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border tracking-wider uppercase ' . $classes]) }}>
-    <span class="w-1.5 h-1.5 rounded-full {{ $dotColor }} {{ in_array($type, ['online', 'active', 'running']) ? 'animate-pulse' : '' }}"></span>
+<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ' . $classes]) }}>
+    <span class="h-1.5 w-1.5 rounded-full {{ $dotColor }} {{ in_array($type, ['online', 'active', 'running']) ? 'animate-pulse' : '' }}"></span>
     {{ $label ?? $defaultLabel }}
 </span>

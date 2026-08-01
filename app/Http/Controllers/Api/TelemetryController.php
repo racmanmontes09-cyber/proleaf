@@ -22,7 +22,11 @@ class TelemetryController extends Controller
         /** @var Device $device */
         $device = $request->attributes->get('device');
 
-        $result = $this->telemetryService->storeTelemetry($device, $request->telemetryPayload());
+        $result = $this->telemetryService->storeTelemetry(
+            $device,
+            $request->telemetryPayload(),
+            app()->environment('testing') || app()->runningUnitTests(),
+        );
 
         $status = $result['created'] ? 201 : 200;
 

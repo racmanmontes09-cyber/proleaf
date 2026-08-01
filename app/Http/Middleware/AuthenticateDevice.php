@@ -54,7 +54,7 @@ class AuthenticateDevice
 
         $response = $next($request);
 
-        if ($response->getStatusCode() < 400) {
+        if ($response->getStatusCode() < 400 && ! $request->is('api/devices/telemetry')) {
             $device->forceFill([
                 'device_token_last_used_at' => now(),
             ])->save();

@@ -9,13 +9,20 @@
     'icon' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'p-5 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm hover:shadow-md hover:border-[#2D6A4F]/30 transition-all group relative overflow-hidden flex flex-col justify-between w-full h-full min-w-0']) }}>
-    
-    <!-- Top Header Row -->
-    <div class="flex items-center justify-between gap-2 text-xs font-semibold text-[#1B4332]/70 mb-2 min-w-0">
-        <span class="truncate">{{ $title }}</span>
+<div {{ $attributes->merge(['class' => 'surface-card hover-lift group relative flex h-full min-w-0 w-full flex-col justify-between overflow-hidden p-5 transition-all']) }}>
+    <div class="mb-4 flex min-w-0 items-start justify-between gap-3">
+        <div class="min-w-0 space-y-2">
+            <p class="truncate text-[11px] font-bold uppercase tracking-[0.18em] text-[#40916C]">{{ $title }}</p>
+            <div class="flex items-baseline gap-1.5 min-w-0">
+                <span class="truncate text-2xl font-extrabold tracking-tight text-[#1B4332]">{{ $value }}</span>
+                @if ($unit)
+                    <span class="shrink-0 text-xs font-bold text-[#40916C]">{{ $unit }}</span>
+                @endif
+            </div>
+        </div>
+
         @if ($icon)
-            <div class="p-2 rounded-xl bg-[#2D6A4F]/10 text-[#2D6A4F] group-hover:bg-[#2D6A4F] group-hover:text-white transition-colors shrink-0">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#2D6A4F]/10 text-[#2D6A4F] transition-colors group-hover:bg-[#2D6A4F] group-hover:text-white">
                 {!! $icon !!}
             </div>
         @else
@@ -23,26 +30,16 @@
         @endif
     </div>
 
-    <!-- Value Display -->
-    <div class="flex items-baseline gap-1.5 my-1 min-w-0">
-        <span class="text-2xl font-extrabold text-[#1B4332] tracking-tight truncate">{{ $value }}</span>
-        @if ($unit)
-            <span class="text-xs font-bold text-[#40916C] shrink-0">{{ $unit }}</span>
-        @endif
-    </div>
-
-    <!-- Footer Subtext & Target Range -->
-    <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2 text-[11px] min-w-0">
+    <div class="mt-4 flex items-center justify-between gap-3 border-t border-[#2D6A4F]/10 pt-3 text-[11px]">
         @if ($icon)
             <x-leaf.status-badge :type="$statusType" :label="$status" class="shrink-0" />
         @else
-            <span class="text-[#2D6A4F] font-semibold truncate">{{ $trend ?? '✓ Normal Range' }}</span>
+            <span class="truncate font-semibold text-[#2D6A4F]">{{ $trend ?? '✓ Normal Range' }}</span>
         @endif
 
         @if ($target)
-            <span class="text-gray-400 font-mono text-[10px] truncate shrink-0">Target: {{ $target }}</span>
+            <span class="shrink-0 font-mono text-[10px] text-gray-400">Target: {{ $target }}</span>
         @endif
     </div>
-
 </div>
 

@@ -239,13 +239,13 @@
                                 Project <span class="gradient-text">L.E.A.F.</span>
                             </h1>
                             <h2 class="text-lg sm:text-xl lg:text-2xl font-bold text-[#40916C] leading-snug">
-                                An IoT-Based Hydroponic Cultivation System for Optimized Lettuce Production
+                                An IoT-Based Hydroponic Monitoring System for Environmental Telemetry
                             </h2>
                         </div>
 
                         <!-- Short Description -->
                         <p class="text-base sm:text-lg text-[#1B4332]/80 leading-relaxed max-w-xl font-normal">
-                            Monitor environmental conditions, automate hydroponic operations, and optimize lettuce growth through real-time IoT technology. Designed for precision agriculture and maximum yield efficiency.
+                            Monitor environmental conditions, automate hydroponic operations, and collect real-time telemetry for environmental monitoring and research. Designed for precision sensing and operational reliability.
                         </p>
 
                         <!-- Buttons -->

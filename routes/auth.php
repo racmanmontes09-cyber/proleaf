@@ -26,6 +26,16 @@ Route::middleware('auth')->group(function () {
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
 
+    Route::view('profile', 'profile')
+        ->name('profile');
+
     Volt::route('confirm-password', 'pages.auth.confirm-password')
         ->name('password.confirm');
+    
+    // Secure POST logout route
+    Route::post('/logout', function () {
+        $logoutAction = app(\App\Livewire\Actions\Logout::class);
+        $logoutAction();
+        return redirect('/');
+    })->name('logout');
 });

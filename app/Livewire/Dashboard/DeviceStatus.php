@@ -156,10 +156,7 @@ class DeviceStatus extends Component
 
     public array $analyticsCategories = [];
 
-    public array $yieldSeries = [];
-
-    public array $yieldLabels = [];
-
+    // Yield-related properties removed to enforce research scope (telemetry-only)
     public bool $hasChartTelemetry = false;
 
     public bool $hasYieldData = false;
@@ -203,8 +200,7 @@ class DeviceStatus extends Component
                 telemetryOverviewCategories: $this->telemetryOverviewCategories,
                 analyticsSeries: $this->analyticsSeries,
                 analyticsCategories: $this->analyticsCategories,
-                yieldSeries: $this->yieldSeries,
-                yieldLabels: $this->yieldLabels,
+                // yieldSeries and yieldLabels intentionally omitted
                 hasChartTelemetry: $this->hasChartTelemetry,
                 hasYieldData: $this->hasYieldData,
             );

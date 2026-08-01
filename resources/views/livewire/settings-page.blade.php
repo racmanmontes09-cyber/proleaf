@@ -9,7 +9,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-lg font-semibold text-[#1B4332]">System Settings</h2>
-                <p class="text-sm text-[#2D6A4F]/80">Configure thresholds, automation, notifications, greenhouse defaults, and device behavior.</p>
+                <p class="text-sm text-[#2D6A4F]/80">Configure thresholds, automation, notifications, device defaults, and device behavior.</p>
             </div>
             <div class="flex gap-2">
                 <button wire:click="save" class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white">Save Changes</button>
@@ -128,39 +128,7 @@
             </div>
         </div>
 
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Greenhouse</h3>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Greenhouse Name</span>
-                    <input type="text" wire:model="settings.greenhouse_name" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Crop Name</span>
-                    <input type="text" wire:model="settings.crop_name" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Crop Variety</span>
-                    <input type="text" wire:model="settings.crop_variety" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Location</span>
-                    <input type="text" wire:model="settings.location" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Reservoir Capacity</span>
-                    <input type="number" wire:model="settings.reservoir_capacity" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Maximum Plant Capacity</span>
-                    <input type="number" wire:model="settings.maximum_plant_capacity" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332] md:col-span-2">
-                    <span>Notes</span>
-                    <textarea rows="3" wire:model="settings.notes" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]"></textarea>
-                </label>
-            </div>
-        </div>
+        <!-- Greenhouse & Crop fields removed to comply with research scope -->
 
         <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
             <h3 class="text-lg font-semibold text-[#1B4332]">Device Defaults</h3>
@@ -177,20 +145,7 @@
                     <span>Default Heartbeat Interval</span>
                     <input type="number" wire:model="settings.default_heartbeat_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
                 </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Future Camera Enabled</span>
-                    <select wire:model="settings.future_camera_enabled" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Future OTA Enabled</span>
-                    <select wire:model="settings.future_ota_enabled" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
+                <!-- Future camera/OTA fields removed to enforce no-camera limitation -->
             </div>
         </div>
 
@@ -254,7 +209,10 @@
                 <p class="mt-2 text-[#2D6A4F]/80">{{ $user->name }}</p>
                 <p class="mt-1 text-[#2D6A4F]/80">{{ $user->email }}</p>
                 <div class="mt-3 flex flex-wrap gap-2">
-                    <a href="{{ route('profile') }}" wire:navigate class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white">Profile</a>
+                    @php($profileRoute = Route::has('profile') ? route('profile') : null)
+                    @if ($profileRoute)
+                        <a href="{{ $profileRoute }}" wire:navigate class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white">Profile</a>
+                    @endif
                     <a href="{{ route('password.request') }}" class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Password</a>
                 </div>
             </div>

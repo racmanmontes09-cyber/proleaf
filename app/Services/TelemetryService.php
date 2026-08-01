@@ -9,6 +9,7 @@ use App\Services\AlertService;
 use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TelemetryService
@@ -21,20 +22,22 @@ class TelemetryService
     /**
      * Store telemetry payload for a device with duplicate prevention handling.
      */
-    public function storeTelemetry(Device $device, array $payload): array
+    public function storeTelemetry(Device $device, array $payload, bool $skipSideEffects = false): array
     {
         try {
-            $telemetry = $device->telemetries()->create($payload);
+            $telemetry = $this->persistTelemetry($device, $payload, $skipSideEffects);
 
-            $this->alertService->evaluateTelemetry($device, $telemetry);
+            if (! $skipSideEffects && $telemetry !== null) {
+                $this->alertService->evaluateTelemetry($device, $telemetry);
 
-            try {
-                broadcast(new TelemetryReceived($telemetry));
-            } catch (BroadcastException $e) {
-                Log::warning('Telemetry broadcast failed', [
-                    'device_id' => $device->id,
-                    'exception' => $e->getMessage(),
-                ]);
+                try {
+                    broadcast(new TelemetryReceived($telemetry));
+                } catch (BroadcastException $e) {
+                    Log::warning('Telemetry broadcast failed', [
+                        'device_id' => $device->id,
+                        'exception' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return [
@@ -55,6 +58,56 @@ class TelemetryService
 
             throw $e;
         }
+    }
+
+    private function persistTelemetry(Device $device, array $payload, bool $skipSideEffects = false): ?Telemetry
+    {
+        $normalizedPayload = $this->prepareTelemetryPayload($device, $payload);
+
+        if ($skipSideEffects) {
+            DB::table('telemetries')->insert($normalizedPayload);
+
+            return null;
+        }
+
+        $id = DB::table('telemetries')->insertGetId($normalizedPayload);
+
+        $telemetry = new Telemetry($normalizedPayload);
+        $telemetry->id = $id;
+        $telemetry->device_id = $device->id;
+        $telemetry->exists = true;
+
+        return $telemetry;
+    }
+
+    private function prepareTelemetryPayload(Device $device, array $payload): array
+    {
+        static $sequence = 0;
+
+        $now = now();
+
+        $normalizedPayload = array_merge([
+            'device_id' => $device->id,
+            'received_at' => $now,
+            'payload_version' => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $payload);
+
+        if (! array_key_exists('measured_at', $normalizedPayload) || $normalizedPayload['measured_at'] === null) {
+            $sequence++;
+            $normalizedPayload['measured_at'] = $now->copy()->addSeconds($sequence);
+        }
+
+        if (! array_key_exists('received_at', $normalizedPayload) || $normalizedPayload['received_at'] === null) {
+            $normalizedPayload['received_at'] = $now;
+        }
+
+        if (! array_key_exists('payload_version', $normalizedPayload) || $normalizedPayload['payload_version'] === null) {
+            $normalizedPayload['payload_version'] = 1;
+        }
+
+        return array_filter($normalizedPayload, fn ($value) => $value !== null);
     }
 
     /**

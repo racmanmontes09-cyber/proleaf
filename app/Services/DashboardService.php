@@ -177,10 +177,12 @@ class DashboardService
             'telemetryOverviewCategories' => $telemetryOverviewCategories,
             'analyticsSeries' => $analyticsSeries,
             'analyticsCategories' => $analyticsCategories,
-            'yieldSeries' => [],
-            'yieldLabels' => [],
+            // Yield-related output removed per approved scope
+            'telemetryOverviewSeries' => $telemetryOverviewSeries,
+            'telemetryOverviewCategories' => $telemetryOverviewCategories,
+            'analyticsSeries' => $analyticsSeries,
+            'analyticsCategories' => $analyticsCategories,
             'hasChartTelemetry' => $hasChartTelemetry,
-            'hasYieldData' => false,
 
             'alerts' => $alerts,
             'alertBadgeLabel' => $alertBadgeLabel,

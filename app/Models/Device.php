@@ -13,6 +13,8 @@ class Device extends Model
 {
     use HasFactory;
 
+    private static array $tokenLookupCache = [];
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_DISABLED = 'disabled';
@@ -99,21 +101,38 @@ class Device extends Model
             return null;
         }
 
-        return self::query()
-            ->where('device_token_hash', self::hashDeviceToken($plainToken))
+        $tokenHash = self::hashDeviceToken($plainToken);
+
+        if (isset(self::$tokenLookupCache[$tokenHash])) {
+            return self::$tokenLookupCache[$tokenHash];
+        }
+
+        $device = self::query()
+            ->where('device_token_hash', $tokenHash)
             ->first();
+
+        if ($device === null) {
+            return null;
+        }
+
+        self::$tokenLookupCache[$tokenHash] = $device;
+
+        return $device;
     }
 
     public function issueDeviceToken(?DateTimeInterface $expiresAt = null): string
     {
         $plainToken = self::generatePlainDeviceToken();
+        $tokenHash = self::hashDeviceToken($plainToken);
 
         $this->forceFill([
-            'device_token_hash' => self::hashDeviceToken($plainToken),
+            'device_token_hash' => $tokenHash,
             'device_token_expires_at' => $expiresAt,
             'device_token_last_used_at' => null,
             'device_token_revoked_at' => null,
         ])->save();
+
+        unset(self::$tokenLookupCache[$tokenHash]);
 
         return $plainToken;
     }
