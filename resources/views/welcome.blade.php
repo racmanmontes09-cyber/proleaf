@@ -111,12 +111,7 @@
                     
                     <!-- Left: Logo & Brand -->
                     <a href="#" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] rounded-xl p-1">
-                        <div class="w-10 h-10 rounded-xl bg-[#2D6A4F] flex items-center justify-center text-white shadow-md shadow-[#2D6A4F]/20 group-hover:scale-105 transition-transform duration-300">
-                            <!-- Leaf Icon -->
-                            <svg class="w-6 h-6 text-[#95D5B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                            </svg>
-                        </div>
+                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-10 w-10 object-contain" />
                         <div class="flex flex-col">
                             <span class="text-xl font-extrabold tracking-tight text-[#1B4332] flex items-center gap-1.5">
                                 Project L.E.A.F.

@@ -352,51 +352,47 @@
             <div class="xl:col-span-4 space-y-6 min-w-0">
                 
                 <!-- Controller Card -->
-                <div class="p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
-                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 min-w-0">
-                        <h3 class="text-base font-bold text-[#1B4332] truncate">ESP32 Controller Node</h3>
+                <div class="p-3 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 min-w-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100 min-w-0">
+                        <h3 class="text-[11px] font-bold text-[#1B4332] truncate">ESP32 Controller Node</h3>
                         <x-leaf.status-badge :type="$deviceStatusType" :label="$deviceStatusLabel" class="shrink-0" />
                     </div>
 
-                    <div class="space-y-2.5 text-xs">
-                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
+                    <div class="space-y-1.5 text-[10px] leading-5">
+                        <div class="flex justify-between py-1 border-b border-gray-50 min-w-0">
                             <span class="text-gray-500">Device Name</span>
                             <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceNameLabel }}</span>
                         </div>
-                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
+                        <div class="flex justify-between py-1 border-b border-gray-50 min-w-0">
                             <span class="text-gray-500">Last Seen</span>
                             <span class="font-mono text-gray-700 truncate">{{ $lastSeenLabel }}</span>
                         </div>
-                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Firmware Version</span>
+                        <div class="flex justify-between py-1 border-b border-gray-50 min-w-0">
+                            <span class="text-gray-500">Firmware</span>
                             <span class="font-mono text-gray-700 truncate">{{ $firmwareLabel }}</span>
                         </div>
-                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Local IP Address</span>
+                        <div class="flex justify-between py-1 border-b border-gray-50 min-w-0">
+                            <span class="text-gray-500">IP</span>
                             <span class="font-mono text-[#2D6A4F] font-semibold truncate">{{ $localIpLabel }}</span>
                         </div>
-                        <div class="flex justify-between py-1.5 border-b border-gray-50 min-w-0">
-                            <span class="text-gray-500">Wi-Fi RSSI</span>
+                        <div class="flex justify-between py-1 min-w-0">
+                            <span class="text-gray-500">RSSI</span>
                             <span class="font-mono text-[#2D6A4F] font-semibold truncate">{{ $wifiRssiLabel }}</span>
-                        </div>
-                        <div class="flex justify-between py-1.5 min-w-0">
-                            <span class="text-gray-500">Uptime</span>
-                            <span class="font-mono text-gray-700 truncate">{{ $systemUptimeLabel }}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Relay Actuators -->
-                <div class="p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
-                    <h3 class="text-base font-bold text-[#1B4332]">Actuator Relays</h3>
-                    <div class="space-y-3 min-w-0">
+                <div class="p-3.5 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 min-w-0">
+                    <h3 class="text-[11px] font-bold text-[#1B4332]">Actuator Relays</h3>
+                    <div class="space-y-2 min-w-0">
                         @foreach ($actuatorCards as $actuatorCard)
-                            <div class="p-3.5 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/10 flex items-center justify-between min-w-0">
+                            <div class="p-2.5 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/10 flex items-center justify-between min-w-0">
                                 <div class="min-w-0">
-                                    <p class="text-xs font-bold text-[#1B4332] truncate">{{ $actuatorCard['name'] }}</p>
+                                    <p class="text-[10px] font-bold text-[#1B4332] truncate">{{ $actuatorCard['name'] }}</p>
                                     <p class="text-[10px] text-gray-500 truncate">{{ $actuatorCard['detail'] }}</p>
                                 </div>
-                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-lg shrink-0 {{ $actuatorCard['statusType'] === 'online' ? 'bg-[#2D6A4F] text-white' : ($actuatorCard['statusType'] === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-[#95D5B2]/40 text-[#1B4332]') }}">{{ $actuatorCard['status'] }}</span>
+                                <span class="px-2 py-0.5 text-[8px] font-semibold rounded-full shrink-0 {{ $actuatorCard['statusType'] === 'online' ? 'bg-[#2D6A4F] text-white' : ($actuatorCard['statusType'] === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-[#95D5B2]/40 text-[#1B4332]') }}">{{ $actuatorCard['status'] }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -406,62 +402,7 @@
 
         </div>
 
-        <!-- RECENT ACTIVITY TIMELINE & QUICK ACTIONS -->
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 lg:gap-6 min-w-0 items-start">
-            
-            <!-- Timeline Log (8 Cols) -->
-            <div class="xl:col-span-8 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100 min-w-0">
-                    <h3 class="text-base font-bold text-[#1B4332] truncate">System Events Log</h3>
-                    <span class="text-xs text-[#2D6A4F] font-semibold shrink-0">Real-Time Telemetry Stream</span>
-                </div>
-
-                <div class="space-y-3 min-w-0">
-                    @forelse ($telemetryAlerts as $alert)
-                        <x-leaf.alert-card 
-                            :title="$alert['title']"
-                            :message="$alert['message']"
-                            :time="$alert['time']"
-                            :severity="$alert['card_severity']"
-                            :read="$alert['acknowledged']"
-                            wire:key="telemetry-alert-{{ $alert['key'] }}"
-                        />
-                    @empty
-                        <x-leaf.alert-card 
-                            title="Waiting for sensor data..."
-                            message="No alerts have been generated yet."
-                            time=""
-                            severity="info"
-                            :read="true"
-                        />
-                    @endforelse
-                </div>
-            </div>
-
-            <!-- Quick Action Grid (4 Cols) -->
-            <div class="xl:col-span-4 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
-                <h3 class="text-base font-bold text-[#1B4332]">Quick Actions</h3>
-                <div class="grid grid-cols-2 gap-3 min-w-0">
-                    <button @click="activeTab = 'monitoring'" type="button" class="p-4 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/15 hover:bg-[#2D6A4F] hover:text-white transition-all text-left text-xs font-bold text-[#1B4332] space-y-1 group min-w-0">
-                        <div class="text-lg">📡</div>
-                        <div class="truncate">View Gauges</div>
-                    </button>
-                    <button @click="activeTab = 'analytics'" type="button" class="p-4 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/15 hover:bg-[#2D6A4F] hover:text-white transition-all text-left text-xs font-bold text-[#1B4332] space-y-1 group min-w-0">
-                        <div class="text-lg">📈</div>
-                        <div class="truncate">Full Charts</div>
-                    </button>
-                    <button @click="activeTab = 'devices'" type="button" class="p-4 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/15 hover:bg-[#2D6A4F] hover:text-white transition-all text-left text-xs font-bold text-[#1B4332] space-y-1 group min-w-0">
-                        <div class="text-lg">⚡</div>
-                        <div class="truncate">Node Control</div>
-                    </button>
-                    <button @click="activeTab = 'reports'" type="button" class="p-4 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/15 hover:bg-[#2D6A4F] hover:text-white transition-all text-left text-xs font-bold text-[#1B4332] space-y-1 group min-w-0">
-                        <div class="text-lg">📋</div>
-                        <div class="truncate">Export PDF</div>
-                    </button>
-                </div>
-            </div>
-
-        </div>
+     
 
     </div>
 

@@ -38,11 +38,8 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Top Branding Header -->
         <div class="relative z-10">
             <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-3 group focus:outline-none">
-                <div class="w-10 h-10 rounded-xl bg-[#95D5B2]/20 border border-[#95D5B2]/30 flex items-center justify-center text-white backdrop-blur-md group-hover:scale-105 transition-transform">
-                    <!-- Leaf Icon -->
-                    <svg class="w-6 h-6 text-[#95D5B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/90 border border-white/20 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                    <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                 </div>
                 <div class="flex flex-col">
                     <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
@@ -141,8 +138,8 @@ new #[Layout('layouts.guest')] class extends Component
             <!-- Mobile Brand Header (Visible only on smaller screens) -->
             <div class="lg:hidden text-center space-y-2">
                 <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-xl bg-[#2D6A4F] flex items-center justify-center text-white shadow-md">
-                        🌱
+                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 flex items-center justify-center overflow-hidden shadow-md">
+                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                     </div>
                     <span class="text-2xl font-extrabold text-[#1B4332]">Project L.E.A.F.</span>
                 </a>
@@ -269,20 +266,22 @@ new #[Layout('layouts.guest')] class extends Component
                     <div class="pt-2">
                         <button 
                             type="submit" 
-                            class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2"
+                            wire:loading.attr="disabled" 
+                            wire:target="login"
+                            class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            <span wire:loading.remove class="flex items-center gap-2">
+                            <span wire:loading.remove wire:target="login" class="flex items-center gap-2">
                                 Sign In
                                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                                 </svg>
                             </span>
-                            <span wire:loading class="flex items-center gap-2">
+                            <span wire:loading wire:target="login" class="flex items-center gap-2">
                                 <svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Signing in...
+                                
                             </span>
                         </button>
                     </div>

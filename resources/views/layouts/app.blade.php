@@ -82,13 +82,11 @@
         <div class="min-h-screen bg-[#F8FAF8] relative overflow-x-hidden">
             <div class="flex flex-col min-h-screen min-w-0">
                 <header x-data="{ openMobile: false, openProfile: false, currentTab: 'dashboard' }" x-on:switch-tab.window="currentTab = $event.detail" x-on:active-tab-changed.window="currentTab = $event.detail" class="sticky top-0 z-40">
-                    <div class="ispsc-topbar border-b border-[#2D6A4F]/10 shadow-sm backdrop-blur-sm">
+                    <div class="ispsc-topbar bg-[#F8FAF8]/95 border-b border-[#2D6A4F]/10 shadow-sm backdrop-blur-sm">
                         <div class="max-w-[1680px] mx-auto flex flex-col gap-4 px-3 py-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 lg:flex-row lg:items-center lg:justify-between">
                             <div class="flex items-center gap-4 min-w-0 lg:w-[34%]">
                                 <a href="{{ Route::has('dashboard') ? route('dashboard') : url('/') }}" class="flex items-center gap-4 min-w-0">
-                                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2D6A4F] text-white shadow-sm">
-                                        <span class="text-sm font-semibold tracking-[0.28em]">LEAF</span>
-                                    </div>
+                                    <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-14 w-14 object-contain" />
                                     <div class="min-w-0">
                                         <p class="truncate text-base font-semibold leading-tight tracking-tight text-[#1B4332]">Project L.E.A.F.</p>
                                         <p class="truncate text-xs uppercase tracking-[0.24em] text-[#40916C]/80">Hydroponic Automation System</p>
@@ -97,13 +95,13 @@
                             </div>
 
                             <div class="flex flex-wrap items-center justify-between gap-4 lg:w-[62%] lg:justify-end">
-                                <div class="flex items-center gap-6 text-sm font-medium text-[#1B4332]/85">
-                                    <span class="inline-flex items-center gap-2 text-sm text-[#1B4332]/85">
-                                        <span class="h-2.5 w-2.5 rounded-full {{ $esp32DotClass }}"></span>
-                                        <span>{{ $esp32Label }}</span>
+                                <div class="flex items-center gap-4 text-sm font-medium text-[#1B4332]/85">
+                                    <span class="inline-flex items-center gap-2 rounded-full border border-[#2D6A4F]/10 bg-white/80 px-3 py-2 text-sm text-[#1B4332]/90 shadow-sm">
+                                        <span id="esp32-status-dot" class="h-2.5 w-2.5 rounded-full {{ $esp32DotClass }}"></span>
+                                        <span id="esp32-status-label">{{ $esp32Label }}</span>
                                     </span>
 
-                                    <span class="text-sm text-[#1B4332]/85 whitespace-nowrap" x-text="new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })"></span>
+                                    <span id="dashboard-clock-time" class="rounded-full border border-[#2D6A4F]/10 bg-white/80 px-3 py-2 text-sm text-[#1B4332]/80 shadow-sm whitespace-nowrap">{{ now()->format('g:i A') }}</span>
                                 </div>
 
                                 <div class="flex items-center gap-4">
@@ -111,9 +109,14 @@
 
                                     <div class="relative" x-data="{ openProfile: false }" @click.outside="openProfile = false">
                                         <button type="button" @click="openProfile = !openProfile"
-                                            class="inline-flex items-center gap-2 rounded-2xl bg-white px-2 py-2 text-sm font-medium text-[#1B4332] transition hover:bg-[#95D5B2]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40"
+                                            class="inline-flex items-center gap-2 rounded-full bg-white border border-[#2D6A4F]/10 px-2 py-2 text-sm font-medium text-[#1B4332] transition shadow-sm hover:bg-[#F8FAF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40916C]/40"
                                             aria-haspopup="true" :aria-expanded="openProfile">
-                                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2D6A4F]/10 text-[#1B4332] font-semibold">{{ $initials }}</span>
+                                            <span class="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#2D6A4F] via-[#40916C] to-[#95D5B2] text-sm font-semibold text-white shadow-lg ring-2 ring-white">
+                                                {{ $initials }}
+                                                <span class="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white ring-2 ring-white">
+                                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                                </span>
+                                            </span>
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#2D6A4F]/80" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                                             </svg>
@@ -140,9 +143,9 @@
                         </div>
                     </div>
 
-                    <div class="ispsc-secondary border-b border-[#145c44] shadow-sm">
-                        <div class="max-w-[1680px] mx-auto flex items-center justify-between gap-4 px-3 py-2 sm:px-4 lg:px-6 xl:px-8 2xl:px-10">
-                            <nav class="hidden lg:flex flex-wrap items-center justify-center gap-10 text-sm font-semibold tracking-[0.08em] text-[#F8FAF5]" aria-label="Primary navigation">
+                    <div class="ispsc-secondary bg-white/90 border-b border-[#2D6A4F]/10 shadow-sm">
+                        <div class="max-w-[1680px] mx-auto flex items-center justify-between gap-4 px-3 py-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10">
+                            <nav class="hidden lg:flex flex-wrap items-center justify-center gap-3 text-sm font-semibold tracking-[0.08em]" aria-label="Primary navigation">
                                 @php
                                     $menuItems = [
                                         ['label' => 'Dashboard', 'route' => 'dashboard', 'tab' => 'dashboard'],
@@ -161,8 +164,8 @@
                                     @endphp
                                     <a href="{{ $routeExists ? route($item['route']) : '#' }}"
                                         @click.prevent="$dispatch('switch-tab', '{{ $tabKey }}')"
-                                        class="transition duration-150 hover:text-[#95D5B2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#95D5B2]/30 cursor-pointer"
-                                        :class="currentTab === '{{ $tabKey }}' ? 'text-[#95D5B2] border-b-2 border-[#95D5B2] pb-1' : 'text-[#F8FAF5]/90 border-b-2 border-transparent pb-1'"
+                                        class="transition duration-150 cursor-pointer rounded-full px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#95D5B2]/30"
+                                        :class="currentTab === '{{ $tabKey }}' ? 'bg-[#2D6A4F] text-white shadow-sm' : 'text-[#1B4332]/80 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/10'"
                                         :aria-current="currentTab === '{{ $tabKey }}' ? 'page' : 'false'">
                                         {{ $item['label'] }}
                                     </a>
@@ -170,7 +173,7 @@
                             </nav>
 
                             <button type="button" @click="openMobile = !openMobile"
-                                class="inline-flex items-center gap-2 rounded-2xl border border-[#95D5B2]/20 bg-[#14442d] px-3 py-2 text-sm font-semibold text-[#F8FAF5] transition hover:border-[#95D5B2]/40 hover:bg-[#125339] lg:hidden"
+                                class="inline-flex items-center gap-2 rounded-full border border-[#2D6A4F]/10 bg-white/90 px-3 py-2 text-sm font-semibold text-[#1B4332] transition shadow-sm hover:border-[#2D6A4F]/20 hover:bg-[#F8FAF8] lg:hidden"
                                 aria-label="Toggle menu"
                                 :aria-expanded="openMobile">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -180,9 +183,9 @@
                             </button>
                         </div>
 
-                        <div x-show="openMobile" x-transition x-cloak class="lg:hidden bg-[#0f5132]">
+                        <div x-show="openMobile" x-transition x-cloak class="lg:hidden bg-white/95 border-t border-[#2D6A4F]/10 shadow-sm">
                             <div class="max-w-[1680px] mx-auto px-3 py-3 sm:px-4 lg:px-6">
-                                <nav class="space-y-2 text-sm font-semibold tracking-[0.08em] text-[#F8FAF5]" aria-label="Mobile navigation">
+                                <nav class="space-y-2 text-sm font-semibold tracking-[0.08em] text-[#1B4332]" aria-label="Mobile navigation">
                                     @foreach ($menuItems as $item)
                                         @php
                                             $routeExists = Route::has($item['route']);
@@ -190,8 +193,8 @@
                                         @endphp
                                         <a href="{{ $routeExists ? route($item['route']) : '#' }}"
                                             @click.prevent="$dispatch('switch-tab', '{{ $tabKey }}'); openMobile = false"
-                                            class="block rounded-2xl px-4 py-3 transition duration-150 cursor-pointer"
-                                            :class="currentTab === '{{ $tabKey }}' ? 'bg-[#125339] text-[#F8FAF5]' : 'text-[#F8FAF5]/90 hover:bg-[#14442d]'"
+                                            class="block rounded-full px-4 py-3 transition duration-150 cursor-pointer"
+                                            :class="currentTab === '{{ $tabKey }}' ? 'bg-[#2D6A4F] text-white' : 'text-[#1B4332]/80 hover:bg-[#F8FAF8] hover:text-[#2D6A4F]'"
                                             :aria-current="currentTab === '{{ $tabKey }}' ? 'page' : 'false'">
                                             {{ $item['label'] }}
                                         </a>
@@ -205,6 +208,31 @@
                 <main class="flex-1 w-full max-w-[1680px] mx-auto min-w-0 px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-10 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
                     {{ $slot }}
                 </main>
+
+                <footer class="mt-auto border-t border-slate-200/80 bg-white/90 text-slate-700 dark:border-slate-700/80 dark:bg-slate-950/95 dark:text-slate-300">
+                    <div class="max-w-[1680px] mx-auto px-3 py-5 sm:px-4 lg:px-6 xl:px-8 2xl:px-10">
+                        <div class="grid gap-4 md:grid-cols-3 md:items-start">
+                            <div class="space-y-1 text-sm text-slate-700 dark:text-slate-300 md:text-left text-center">
+                                <p class="font-semibold text-slate-900 dark:text-slate-100">Project L.E.A.F.</p>
+                                <p class="text-slate-500 dark:text-slate-400">Lettuce Environment Automation & Farming</p>
+                                <p class="text-slate-500 dark:text-slate-400">IoT-Based NFT Hydroponic Cultivation System</p>
+                            </div>
+
+                            <div class="space-y-1 text-sm text-slate-700 dark:text-slate-300 text-center">
+                                <p class="font-semibold text-slate-900 dark:text-slate-100">Firmware Version: <span class="font-normal text-slate-600 dark:text-slate-400">{{ $latestDevice?->firmware_version ?? 'v1.0.0' }}</span></p>
+                                <p class="font-semibold text-slate-900 dark:text-slate-100">Dashboard Version: <span class="font-normal text-slate-600 dark:text-slate-400">v1.0.0</span></p>
+                                <p class="font-semibold text-slate-900 dark:text-slate-100">Last Updated: <span class="font-normal text-slate-600 dark:text-slate-400">{{ now()->year }}</span></p>
+                            </div>
+
+                            <div class="space-y-1 text-sm text-slate-700 dark:text-slate-300 md:text-right text-center">
+                                <p class="font-semibold text-slate-900 dark:text-slate-100">© {{ now()->year }} Project L.E.A.F.</p>
+                                <p class="text-slate-500 dark:text-slate-400">BSIT Capstone Project</p>
+                                <p class="text-slate-500 dark:text-slate-400">Tagudin, Ilocos Sur</p>
+                                <p class="text-slate-500 dark:text-slate-400">Status: <span class="font-semibold {{ $esp32IsOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">{{ $esp32Label }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
             </div>
         </div>
 

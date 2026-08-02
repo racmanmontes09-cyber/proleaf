@@ -50,11 +50,8 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Top Branding Header -->
         <div class="relative z-10">
             <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-3 group focus:outline-none">
-                <div class="w-10 h-10 rounded-xl bg-[#95D5B2]/20 border border-[#95D5B2]/30 flex items-center justify-center text-white backdrop-blur-md group-hover:scale-105 transition-transform">
-                    <!-- Leaf Icon -->
-                    <svg class="w-6 h-6 text-[#95D5B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
+                <div class="w-10 h-10 rounded-xl bg-white/90 border border-white/20 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                    <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                 </div>
                 <div class="flex flex-col">
                     <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
@@ -150,8 +147,8 @@ new #[Layout('layouts.guest')] class extends Component
             <!-- Mobile Brand Header (Visible only on smaller screens) -->
             <div class="lg:hidden text-center space-y-2">
                 <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-xl bg-[#2D6A4F] flex items-center justify-center text-white shadow-md">
-                        🌱
+                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 flex items-center justify-center overflow-hidden shadow-md">
+                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                     </div>
                     <span class="text-2xl font-extrabold text-[#1B4332]">Project L.E.A.F.</span>
                 </a>
