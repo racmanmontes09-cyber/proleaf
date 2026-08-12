@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Device;
 use App\Models\SystemSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,7 +30,13 @@ class SystemSettingsApiTest extends TestCase
         SystemSetting::putValue('heartbeat_interval', '30');
         SystemSetting::putValue('sensor_upload_interval', '5');
 
-        $this->getJson('/api/device/settings')
+        $device = Device::create([
+            'device_id' => 'LEAF-SETTINGS-01',
+            'name' => 'Settings Device',
+        ]);
+        $token = $device->issueDeviceToken();
+
+        $this->withToken($token)->getJson('/api/device/settings')
             ->assertOk()
             ->assertJsonPath('temperature.min', 18)
             ->assertJsonPath('temperature.max', 25)
@@ -37,5 +44,14 @@ class SystemSettingsApiTest extends TestCase
             ->assertJsonPath('humidity.max', 80)
             ->assertJsonPath('heartbeat_interval', 30)
             ->assertJsonPath('upload_interval', 5);
+    }
+    public function test_device_settings_endpoint_requires_device_authentication(): void
+    {
+        $this->getJson('/api/device/settings')
+            ->assertUnauthorized()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Missing device token.',
+            ]);
     }
 }

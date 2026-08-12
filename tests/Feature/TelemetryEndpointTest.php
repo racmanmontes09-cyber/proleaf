@@ -105,6 +105,23 @@ class TelemetryEndpointTest extends TestCase
         ]);
     }
 
+    public function test_telemetry_endpoint_normalizes_offset_measured_at_to_utc(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-08-11 14:00:00 UTC'));
+
+        [$device, $token] = $this->createAuthenticatedDevice();
+
+        $this->withToken($token)->postJson('/api/devices/telemetry', [
+            'air_temperature' => 24.8,
+            'measured_at' => '2026-08-11T21:55:31.123456+08:00',
+        ])->assertCreated();
+
+        $telemetry = $device->telemetries()->latest('id')->firstOrFail();
+
+        $this->assertSame('2026-08-11 13:55:31.123456', $telemetry->getRawOriginal('measured_at'));
+        $this->assertTrue($telemetry->measured_at->lessThanOrEqualTo(now()));
+    }
+
     public function test_telemetry_endpoint_handles_duplicate_measured_at_telemetry_gracefully(): void
     {
         [$device, $token] = $this->createAuthenticatedDevice([
@@ -135,6 +152,35 @@ class TelemetryEndpointTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('telemetries', 1);
+    }
+
+
+    public function test_telemetry_endpoint_rejects_future_measured_at(): void
+    {
+        [, $token] = $this->createAuthenticatedDevice();
+
+        $this->withToken($token)->postJson('/api/devices/telemetry', [
+            'air_temperature' => 24.8,
+            'measured_at' => now()->addMinute()->toIso8601String(),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('measured_at');
+    }
+
+    public function test_telemetry_endpoint_missing_measured_at_is_not_future_skewed(): void
+    {
+        [$device, $token] = $this->createAuthenticatedDevice();
+
+        $this->withToken($token)->postJson('/api/devices/telemetry', [
+            'air_temperature' => 24.8,
+        ])->assertCreated();
+
+        $telemetry = $device->telemetries()->latest('id')->firstOrFail();
+
+        $this->assertTrue(
+            $telemetry->measured_at->lessThanOrEqualTo(now()),
+            'Telemetry measured_at should not be shifted into the future when omitted.'
+        );
     }
 
     public function test_telemetry_endpoint_rejects_malformed_payloads(): void

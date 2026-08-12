@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\DashboardTelemetryController;
 use App\Livewire\Dashboard\DeviceStatus;
 
 Route::view('/', 'welcome');
@@ -19,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'statusLabel' => $latestDevice ? ($isOnline ? 'ESP32 Online' : 'ESP32 Offline') : 'ESP32 Offline',
         ]);
     })->name('dashboard.esp32.status');
+
+    Route::get('/dashboard/telemetry/readings', DashboardTelemetryController::class)
+        ->name('dashboard.telemetry.readings');
 
 });
 

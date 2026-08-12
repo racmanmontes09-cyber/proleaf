@@ -75,9 +75,13 @@ class DeviceStatusDashboardTest extends TestCase
 
         $this->assertNotNull($xData);
         $this->assertStringContainsString('initialChartPayload', $xData);
+        $this->assertStringContainsString('initialKpis', $xData);
+        $this->assertStringContainsString('air_temperature', $xData);
         $this->assertStringContainsString('Water pH', $xData);
         $this->assertStringContainsString('analyticsSeries', $xData);
+        $this->assertStringContainsString('kpiValue', $html);
         $this->assertStringContainsString('dashboard-chart-data-updated', $html);
+        $this->assertStringContainsString('dashboard-device-selected', $html);
     }
 
     public function test_dashboard_refresh_dispatches_chart_update_payload(): void
@@ -101,6 +105,28 @@ class DeviceStatusDashboardTest extends TestCase
         Livewire::test(DeviceStatus::class)
             ->call('refreshDashboard')
             ->assertDispatched('dashboard-chart-data-updated');
+    }
+
+    public function test_dashboard_light_refresh_dispatches_device_selected_when_latest_device_changes(): void
+    {
+        Device::create([
+            'device_id' => 'LEAF-ESP32-01',
+            'name' => 'ESP32-01',
+            'last_seen_at' => now()->subMinute(),
+        ]);
+
+        $component = Livewire::test(DeviceStatus::class);
+
+        $newDevice = Device::create([
+            'device_id' => 'LEAF-ESP32-02',
+            'name' => 'ESP32-02',
+            'last_seen_at' => now(),
+        ]);
+
+        $component
+            ->call('refreshDashboardLight')
+            ->assertSet('device.id', $newDevice->id)
+            ->assertDispatched('dashboard-device-selected');
     }
 
     public function test_dashboard_shows_waiting_state_when_no_device_exists(): void

@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Events\TelemetryReceived;
 use App\Models\Device;
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
 use App\Models\Telemetry;
 use App\Services\TelemetryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +22,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $this->assertSame('pusher', config('broadcasting.default'));
     }
 
-    public function test_telemetry_received_event_broadcasts_on_telemetry_channel(): void
+    public function test_telemetry_received_event_broadcasts_on_private_device_channel(): void
     {
         $device = Device::create([
             'device_id' => 'LEAF-ESP32-01',
@@ -41,8 +44,56 @@ class TelemetryReceivedBroadcastTest extends TestCase
 
         $channels = $event->broadcastOn();
         $this->assertCount(1, $channels);
-        $this->assertEquals('telemetry', $channels[0]->name);
+        $this->assertEquals('private-devices.'.$device->id.'.telemetry', $channels[0]->name);
         $this->assertEquals('TelemetryReceived', $event->broadcastAs());
+    }
+
+
+    public function test_private_telemetry_channel_rejects_unauthenticated_client(): void
+    {
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-PRIVATE-01',
+            'name' => 'ESP32 Private Device',
+        ]);
+
+        $this->post('/broadcasting/auth', [
+            'socket_id' => '123.456',
+            'channel_name' => 'private-devices.'.$device->id.'.telemetry',
+        ])->assertForbidden();
+    }
+
+    public function test_private_telemetry_channel_requires_telemetry_view_permission(): void
+    {
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-PRIVATE-02',
+            'name' => 'ESP32 Private Device',
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/broadcasting/auth', [
+            'socket_id' => '123.456',
+            'channel_name' => 'private-devices.'.$device->id.'.telemetry',
+        ])->assertForbidden();
+    }
+
+    public function test_private_telemetry_channel_allows_telemetry_view_user(): void
+    {
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-PRIVATE-03',
+            'name' => 'ESP32 Private Device',
+        ]);
+
+        $permission = Permission::create(['name' => 'Telemetry: View', 'slug' => 'telemetry.view']);
+        $role = Role::create(['name' => 'Telemetry Viewer', 'slug' => 'telemetry-viewer']);
+        $role->permissions()->attach($permission->id);
+        $user = User::factory()->create();
+        $user->roles()->attach($role->id);
+
+        $this->actingAs($user)->post('/broadcasting/auth', [
+            'socket_id' => '123.456',
+            'channel_name' => 'private-devices.'.$device->id.'.telemetry',
+        ])->assertOk();
     }
 
     public function test_telemetry_received_event_payload_contains_only_required_fields(): void
@@ -70,6 +121,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $payload = $event->broadcastWith();
 
         $expectedKeys = [
+            'id',
             'device_id',
             'air_temperature',
             'humidity',
@@ -87,6 +139,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
         sort($expectedKeys);
 
         $this->assertEquals($expectedKeys, $keys);
+        $this->assertEquals($telemetry->id, $payload['id']);
         $this->assertEquals($device->id, $payload['device_id']);
         $this->assertEquals(24.5, $payload['air_temperature']);
         $this->assertEquals(60.0, $payload['humidity']);
@@ -100,7 +153,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $this->assertArrayNotHasKey('battery_voltage', $payload);
     }
 
-    public function test_telemetry_service_dispatches_telemetry_received_event(): void
+    public function test_telemetry_service_stores_data_without_dispatching_telemetry_received_event(): void
     {
         Event::fake([TelemetryReceived::class]);
 
@@ -123,13 +176,16 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertTrue($result['created']);
 
-        Event::assertDispatched(TelemetryReceived::class, function ($event) use ($device) {
-            return $event->telemetry->device_id === $device->id
-                && $event->telemetry->air_temperature == 25.0;
-        });
+        $this->assertDatabaseHas('telemetries', [
+            'device_id' => $device->id,
+            'air_temperature' => 25.0,
+            'ph' => 6.0,
+        ]);
+
+        Event::assertNotDispatched(TelemetryReceived::class);
     }
 
-    public function test_telemetry_api_endpoint_stores_data_and_dispatches_event(): void
+    public function test_telemetry_api_endpoint_stores_data_without_dispatching_event(): void
     {
         Event::fake([TelemetryReceived::class]);
 
@@ -161,6 +217,6 @@ class TelemetryReceivedBroadcastTest extends TestCase
             'ph' => 6.1,
         ]);
 
-        Event::assertDispatched(TelemetryReceived::class);
+        Event::assertNotDispatched(TelemetryReceived::class);
     }
 }

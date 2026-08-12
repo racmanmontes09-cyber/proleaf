@@ -115,8 +115,10 @@ class ServicesTest extends TestCase
             'status' => 'active',
         ]);
 
-        $alertKey = $alerts[0]['key'];
-        $alertService->acknowledgeAlertByKey($alertKey, auth()->id());
+        $airTemperatureAlert = collect($alerts)->firstWhere('sensor', 'air_temperature');
+        $this->assertNotNull($airTemperatureAlert);
+
+        $alertService->acknowledgeAlertByKey($airTemperatureAlert['key'], auth()->id());
 
         $this->assertDatabaseHas('alerts', [
             'device_id' => $device->id,

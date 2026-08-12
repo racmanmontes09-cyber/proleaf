@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Events\TelemetryReceived;
 use App\Models\Device;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -13,15 +12,28 @@ class TelemetryPerformanceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_telemetry_event_implements_should_broadcast_now(): void
+    public function test_telemetry_posts_do_not_dispatch_broadcast_event_on_critical_path(): void
     {
-        $implements = class_implements(TelemetryReceived::class);
+        Event::fake([TelemetryReceived::class]);
 
-        $this->assertArrayHasKey(
-            ShouldBroadcastNow::class,
-            $implements,
-            'TelemetryReceived must implement ShouldBroadcastNow to bypass queue delay.'
-        );
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-NO-BROADCAST',
+            'name' => 'ESP32 No Broadcast Node',
+        ]);
+        $token = $device->issueDeviceToken();
+
+        $this->withToken($token)->postJson('/api/devices/telemetry', [
+            'air_temperature' => 24.0,
+            'humidity' => 60.0,
+            'water_temperature' => 21.0,
+            'ph' => 6.2,
+            'ec' => 1.5,
+            'water_flow' => 2.0,
+            'water_level' => 85.0,
+            'sequence_number' => 1,
+        ])->assertCreated();
+
+        Event::assertNotDispatched(TelemetryReceived::class);
     }
 
     public function test_feature_request_reports_latency_profile_for_telemetry_posts(): void
@@ -62,7 +74,7 @@ class TelemetryPerformanceTest extends TestCase
         }
 
         $this->assertDatabaseCount('telemetries', $sampleCount);
-        Event::assertDispatchedTimes(TelemetryReceived::class, $sampleCount);
+        Event::assertNotDispatched(TelemetryReceived::class);
 
         $latencyProfile = $this->summarizeLatency($timings);
         $this->assertSame($sampleCount, count($timings));

@@ -103,6 +103,8 @@ class DashboardService
         $telemetryOverviewCategories = $includeCharts ? $this->telemetryService->buildTelemetryOverviewCategories($telemetryHistory) : [];
         $analyticsSeries = $includeCharts ? $this->telemetryService->buildAnalyticsSeries($telemetryHistory) : [];
         $analyticsCategories = $includeCharts ? $this->telemetryService->buildAnalyticsCategories($telemetryHistory) : [];
+        $telemetryChartReadings = $includeCharts ? $this->telemetryService->serializeTelemetryReadings($telemetryHistory) : [];
+        $telemetryKpis = $this->telemetryService->serializeTelemetryKpis($latestTelemetry);
 
         $hasChartTelemetry = $includeCharts && collect(array_merge($telemetryOverviewSeries, $analyticsSeries))
             ->contains(fn (array $series): bool => ! empty($series['data']));
@@ -173,15 +175,27 @@ class DashboardService
             'waterFlowStatusType' => $waterFlowStatusType,
             'waterFlowTrendText' => $trendText,
 
+            'temperatureLowThreshold' => $thresholds['temperatureLow'],
+            'temperatureHighThreshold' => $thresholds['temperatureHigh'],
+            'humidityLowThreshold' => $thresholds['humidityLow'],
+            'humidityHighThreshold' => $thresholds['humidityHigh'],
+            'waterTemperatureLowThreshold' => $thresholds['waterTemperatureLow'],
+            'waterTemperatureHighThreshold' => $thresholds['waterTemperatureHigh'],
+            'phLowThreshold' => $thresholds['phLow'],
+            'phHighThreshold' => $thresholds['phHigh'],
+            'ecLowThreshold' => $thresholds['ecLow'],
+            'ecHighThreshold' => $thresholds['ecHigh'],
+            'waterLevelLowThreshold' => $thresholds['waterLevelLow'],
+            'waterLevelHighThreshold' => $thresholds['waterLevelHigh'],
+            'waterFlowLowThreshold' => $thresholds['waterFlowLow'],
+            'waterFlowHighThreshold' => $thresholds['waterFlowHigh'],
+
+            'telemetryKpis' => $telemetryKpis,
             'telemetryOverviewSeries' => $telemetryOverviewSeries,
             'telemetryOverviewCategories' => $telemetryOverviewCategories,
             'analyticsSeries' => $analyticsSeries,
             'analyticsCategories' => $analyticsCategories,
-            // Yield-related output removed per approved scope
-            'telemetryOverviewSeries' => $telemetryOverviewSeries,
-            'telemetryOverviewCategories' => $telemetryOverviewCategories,
-            'analyticsSeries' => $analyticsSeries,
-            'analyticsCategories' => $analyticsCategories,
+            'telemetryChartReadings' => $telemetryChartReadings,
             'hasChartTelemetry' => $hasChartTelemetry,
 
             'alerts' => $alerts,

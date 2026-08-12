@@ -3,7 +3,7 @@
 namespace App\Events;
 
 use App\Models\Telemetry;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -31,7 +31,7 @@ class TelemetryReceived implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('telemetry'),
+            new PrivateChannel('devices.'.$this->telemetry->device_id.'.telemetry'),
         ];
     }
 
@@ -56,6 +56,7 @@ class TelemetryReceived implements ShouldBroadcastNow
         }
 
         return [
+            'id' => (int) $this->telemetry->id,
             'device_id' => $this->telemetry->device_id,
             'air_temperature' => $this->telemetry->air_temperature !== null ? (float) $this->telemetry->air_temperature : null,
             'humidity' => $this->telemetry->humidity !== null ? (float) $this->telemetry->humidity : null,

@@ -2,15 +2,14 @@
 
 namespace App\Services;
 
-use App\Events\TelemetryReceived;
 use App\Models\Device;
 use App\Models\Telemetry;
 use App\Services\AlertService;
-use Illuminate\Broadcasting\BroadcastException;
+use DateTimeInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class TelemetryService
 {
@@ -30,14 +29,6 @@ class TelemetryService
             if (! $skipSideEffects && $telemetry !== null) {
                 $this->alertService->evaluateTelemetry($device, $telemetry);
 
-                try {
-                    broadcast(new TelemetryReceived($telemetry));
-                } catch (BroadcastException $e) {
-                    Log::warning('Telemetry broadcast failed', [
-                        'device_id' => $device->id,
-                        'exception' => $e->getMessage(),
-                    ]);
-                }
             }
 
             return [
@@ -82,7 +73,7 @@ class TelemetryService
 
     private function prepareTelemetryPayload(Device $device, array $payload): array
     {
-        static $sequence = 0;
+        static $fallbackSequence = 0;
 
         $now = now();
 
@@ -95,8 +86,10 @@ class TelemetryService
         ], $payload);
 
         if (! array_key_exists('measured_at', $normalizedPayload) || $normalizedPayload['measured_at'] === null) {
-            $sequence++;
-            $normalizedPayload['measured_at'] = $now->copy()->addSeconds($sequence);
+            $fallbackSequence = ($fallbackSequence + 1) % 1000000;
+            $normalizedPayload['measured_at'] = $now->copy()
+                ->subMicroseconds($fallbackSequence)
+                ->format('Y-m-d H:i:s.u');
         }
 
         if (! array_key_exists('received_at', $normalizedPayload) || $normalizedPayload['received_at'] === null) {
@@ -107,7 +100,22 @@ class TelemetryService
             $normalizedPayload['payload_version'] = 1;
         }
 
+        foreach (['measured_at', 'received_at'] as $timestampField) {
+            if (array_key_exists($timestampField, $normalizedPayload) && $normalizedPayload[$timestampField] !== null) {
+                $normalizedPayload[$timestampField] = $this->normalizeTimestampValue($normalizedPayload[$timestampField]);
+            }
+        }
+
         return array_filter($normalizedPayload, fn ($value) => $value !== null);
+    }
+
+    private function normalizeTimestampValue(DateTimeInterface|string $value): string
+    {
+        $timestamp = $value instanceof DateTimeInterface
+            ? Carbon::instance($value)
+            : Carbon::parse($value);
+
+        return $timestamp->utc()->format('Y-m-d H:i:s.u');
     }
 
     /**
@@ -193,6 +201,184 @@ class TelemetryService
             ->get()
             ->reverse()
             ->values();
+    }
+
+    /**
+     * Get telemetry rows newer than the browser's last processed database ID.
+     */
+    public function getTelemetryAfterId(Device $device, int $afterId, int $limit = 120): Collection
+    {
+        return $device->telemetries()
+            ->forceIndex('telemetries_device_id_id_index')
+            ->select($this->telemetryChartColumns())
+            ->where('telemetries.id', '>', $afterId)
+            ->orderBy('telemetries.id')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Convert telemetry models into the compact shape consumed by live charts.
+     */
+    public function serializeTelemetryReadings(Collection $readings): array
+    {
+        return $readings
+            ->map(fn (Telemetry $telemetry): array => $this->serializeTelemetryReading($telemetry))
+            ->values()
+            ->all();
+    }
+
+    public function serializeTelemetryReading(Telemetry $telemetry): array
+    {
+        $measuredAt = $telemetry->measured_at ?? $telemetry->updated_at ?? $telemetry->created_at;
+
+        return [
+            'id' => (int) $telemetry->id,
+            'device_id' => (int) $telemetry->device_id,
+            'timestamp' => $this->serializeChartTimestamp($measuredAt),
+            'measured_at' => $this->serializeChartTimestamp($telemetry->measured_at),
+            'air_temperature' => $telemetry->air_temperature !== null ? (float) $telemetry->air_temperature : null,
+            'humidity' => $telemetry->humidity !== null ? (float) $telemetry->humidity : null,
+            'water_temperature' => $telemetry->water_temperature !== null ? (float) $telemetry->water_temperature : null,
+            'ph' => $telemetry->ph !== null ? (float) $telemetry->ph : null,
+            'ec' => $telemetry->ec !== null ? (float) $telemetry->ec : null,
+            'water_flow' => $telemetry->water_flow !== null ? (float) $telemetry->water_flow : null,
+            'water_level' => $telemetry->water_level !== null ? (float) $telemetry->water_level : null,
+        ];
+    }
+
+    private function telemetryChartColumns(): array
+    {
+        return [
+            'id',
+            'device_id',
+            'air_temperature',
+            'humidity',
+            'water_temperature',
+            'ph',
+            'ec',
+            'water_flow',
+            'water_level',
+            'measured_at',
+            'updated_at',
+            'created_at',
+        ];
+    }
+
+    private function serializeChartTimestamp(mixed $timestamp): ?string
+    {
+        if ($timestamp === null || $timestamp === '') {
+            return null;
+        }
+
+        if ($timestamp instanceof \DateTimeInterface) {
+            return Carbon::instance($timestamp)->toIso8601String();
+        }
+
+        return Carbon::parse($timestamp)->toIso8601String();
+    }
+
+    /**
+     * Build KPI display values and threshold states for a telemetry reading.
+     */
+    public function serializeTelemetryKpis(?Telemetry $telemetry): array
+    {
+        if ($telemetry === null) {
+            return [];
+        }
+
+        $thresholds = $this->thresholdService->getAllThresholds();
+        $timestamp = $telemetry->measured_at ?? $telemetry->updated_at ?? $telemetry->created_at;
+        $trendText = $timestamp ? 'Last Updated: '.$timestamp->diffForHumans() : 'Waiting for sensor data...';
+
+        $waterLevel = $telemetry->water_level !== null
+            ? $this->normalizeWaterLevelValue($telemetry->water_level)
+            : null;
+
+        return [
+            'air_temperature' => $this->serializeTelemetryKpi(
+                $telemetry->air_temperature !== null ? (float) $telemetry->air_temperature : null,
+                1,
+                $thresholds['temperatureLow'],
+                $thresholds['temperatureHigh'],
+                'LOW',
+                'HIGH',
+                $trendText,
+            ),
+            'humidity' => $this->serializeTelemetryKpi(
+                $telemetry->humidity !== null ? (float) $telemetry->humidity : null,
+                0,
+                $thresholds['humidityLow'],
+                $thresholds['humidityHigh'],
+                'LOW',
+                'HIGH',
+                $trendText,
+            ),
+            'water_temperature' => $this->serializeTelemetryKpi(
+                $telemetry->water_temperature !== null ? (float) $telemetry->water_temperature : null,
+                1,
+                $thresholds['waterTemperatureLow'],
+                $thresholds['waterTemperatureHigh'],
+                'LOW',
+                'HIGH',
+                $trendText,
+            ),
+            'ph' => $this->serializeTelemetryKpi(
+                $telemetry->ph !== null ? (float) $telemetry->ph : null,
+                1,
+                $thresholds['phLow'],
+                $thresholds['phHigh'],
+                'LOW',
+                'HIGH',
+                $trendText,
+            ),
+            'ec' => $this->serializeTelemetryKpi(
+                $telemetry->ec !== null ? (float) $telemetry->ec : null,
+                1,
+                $thresholds['ecLow'],
+                $thresholds['ecHigh'],
+                'LOW',
+                'HIGH',
+                $trendText,
+            ),
+            'water_level' => $this->serializeTelemetryKpi(
+                $waterLevel['value'] ?? null,
+                0,
+                $thresholds['waterLevelLow'],
+                $thresholds['waterLevelHigh'],
+                'LOW',
+                'FULL',
+                $trendText,
+                $waterLevel['display'] ?? null,
+            ),
+            'water_flow' => $this->serializeTelemetryKpi(
+                $telemetry->water_flow !== null ? (float) $telemetry->water_flow : null,
+                1,
+                $thresholds['waterFlowLow'],
+                $thresholds['waterFlowHigh'],
+                'LOW FLOW',
+                'HIGH FLOW',
+                $trendText,
+            ),
+        ];
+    }
+
+    private function serializeTelemetryKpi(
+        ?float $value,
+        int $decimals,
+        ?float $low,
+        ?float $high,
+        string $lowLabel,
+        string $highLabel,
+        string $trendText,
+        ?string $displayValue = null,
+    ): array {
+        return [
+            'value' => $displayValue ?? ($value !== null ? number_format($value, $decimals) : '--'),
+            'status' => $this->thresholdService->resolveStatus($value, $low, $high, $lowLabel, $highLabel),
+            'statusType' => $this->thresholdService->resolveStatusType($value, $low, $high),
+            'trend' => $trendText,
+        ];
     }
 
     /**

@@ -25,7 +25,6 @@ class TelemetryController extends Controller
         $result = $this->telemetryService->storeTelemetry(
             $device,
             $request->telemetryPayload(),
-            app()->environment('testing') || app()->runningUnitTests(),
         );
 
         $status = $result['created'] ? 201 : 200;

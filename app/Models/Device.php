@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\DeviceCommand;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Device extends Model
@@ -78,11 +79,9 @@ class Device extends Model
         return $this->hasMany(DeviceCommand::class);
     }
 
-    public function latestTelemetry(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function latestTelemetry(): HasOne
     {
-        return $this->hasOne(Telemetry::class)
-            ->orderByDesc('measured_at')
-            ->orderByDesc('id');
+        return $this->hasOne(Telemetry::class)->ofMany('measured_at', 'max');
     }
 
     public static function generatePlainDeviceToken(): string

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\SimulateLeafDashboardTelemetry;
 use App\Console\Commands\SimulateLeafTelemetry;
 use App\Models\Device;
 use App\Models\User;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->commands([
+            SimulateLeafDashboardTelemetry::class,
             SimulateLeafTelemetry::class,
         ]);
     }

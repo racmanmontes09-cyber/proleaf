@@ -1,197 +1,23 @@
-<div wire:poll.visible.5s="refreshDashboardLight" class="space-y-8 min-w-0" x-data="{
+<div wire:poll.visible.5s="refreshDashboardLight" class="min-w-0">
+<div wire:ignore.self class="space-y-8 min-w-0" x-data="leafDashboardCharts({
     activeTab: 'dashboard',
     hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
-    initialized: false,
-    subscribed: false,
-    charts: {
-        telemetryOverview: null,
-        analytics: null
+    deviceId: {{ json_encode($device?->id) }},
+    pollingUrl: {{ json_encode(route('dashboard.telemetry.readings', [], false)) }},
+    maxPoints: {{ (int) config('leaf.dashboard.live_chart.max_points', 60) }},
+    pollIntervalMs: {{ (int) config('leaf.dashboard.live_chart.poll_interval_ms', 1000) }},
+    pollBatchLimit: {{ (int) config('leaf.dashboard.live_chart.poll_batch_limit', 120) }},
+    initialKpis: {{ json_encode($telemetryKpis) }},
+    initialChartPayload: {
+        telemetryChartReadings: {{ json_encode($telemetryChartReadings) }},
+        telemetryKpis: {{ json_encode($telemetryKpis) }},
+        telemetryOverviewSeries: {{ json_encode($telemetryOverviewSeries) }},
+        telemetryOverviewCategories: {{ json_encode($telemetryOverviewCategories) }},
+        analyticsSeries: {{ json_encode($analyticsSeries) }},
+        analyticsCategories: {{ json_encode($analyticsCategories) }},
+        hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
     },
-    overviewData: {
-        categories: [],
-        ph: [],
-        waterTemp: [],
-        ec: []
-    },
-    analyticsData: {
-        categories: [],
-        airTemp: [],
-        humidity: [],
-        waterFlow: []
-    },
-    initialChartPayload() {
-        return {
-            telemetryOverviewSeries: {{ json_encode($telemetryOverviewSeries) }},
-            telemetryOverviewCategories: {{ json_encode($telemetryOverviewCategories) }},
-            analyticsSeries: {{ json_encode($analyticsSeries) }},
-            analyticsCategories: {{ json_encode($analyticsCategories) }},
-            hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
-        };
-    },
-    initApexCharts() {
-        this.$nextTick(() => {
-            this.renderOrUpdateCharts(this.initialChartPayload());
-            this.listenToPusher();
-        });
-    },
-    listenToPusher() {
-        if (typeof window.Echo !== 'undefined' && !this.subscribed) {
-            this.subscribed = true;
-            const channel = window.Echo.channel('telemetry');
-            const handler = (data) => {
-                this.handleTelemetryReceived(data);
-            };
-            channel.listen('.TelemetryReceived', handler);
-            channel.listen('TelemetryReceived', handler);
-        }
-    },
-    handleTelemetryReceived(data) {
-        if (!data) return;
-        this.hasChartTelemetry = true;
-
-        let timeLabel = '';
-        if (data.measured_at) {
-            const dt = new Date(data.measured_at);
-            if (!isNaN(dt.getTime())) {
-                timeLabel = dt.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            } else {
-                timeLabel = data.measured_at;
-            }
-        } else {
-            timeLabel = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-
-        const ph = data.ph !== null && data.ph !== undefined ? parseFloat(data.ph) : null;
-        const wTemp = data.water_temperature !== null && data.water_temperature !== undefined ? parseFloat(data.water_temperature) : null;
-        const ec = data.ec !== null && data.ec !== undefined ? parseFloat(data.ec) : null;
-        const aTemp = data.air_temperature !== null && data.air_temperature !== undefined ? parseFloat(data.air_temperature) : null;
-        const hum = data.humidity !== null && data.humidity !== undefined ? parseFloat(data.humidity) : null;
-        const wFlow = data.water_flow !== null && data.water_flow !== undefined ? parseFloat(data.water_flow) : null;
-
-        // 1. Dashboard Overview Data
-        this.overviewData.categories.push(timeLabel);
-        this.overviewData.ph.push(ph);
-        this.overviewData.waterTemp.push(wTemp);
-        this.overviewData.ec.push(ec);
-
-        if (this.overviewData.categories.length > 100) {
-            this.overviewData.categories.shift();
-            this.overviewData.ph.shift();
-            this.overviewData.waterTemp.shift();
-            this.overviewData.ec.shift();
-        }
-
-        if (this.charts.telemetryOverview) {
-            this.charts.telemetryOverview.updateSeries([
-                { name: 'Water pH', data: [...this.overviewData.ph] },
-                { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
-                { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] }
-            ], true);
-            this.charts.telemetryOverview.updateOptions({
-                xaxis: { categories: [...this.overviewData.categories] }
-            }, false, true);
-        }
-
-        // 2. Analytics Data
-        this.analyticsData.categories.push(timeLabel);
-        this.analyticsData.airTemp.push(aTemp);
-        this.analyticsData.humidity.push(hum);
-        this.analyticsData.waterFlow.push(wFlow);
-
-        if (this.analyticsData.categories.length > 100) {
-            this.analyticsData.categories.shift();
-            this.analyticsData.airTemp.shift();
-            this.analyticsData.humidity.shift();
-            this.analyticsData.waterFlow.shift();
-        }
-
-        if (this.charts.analytics) {
-            this.charts.analytics.updateSeries([
-                { name: 'Air Temp (°C)', type: 'column', data: [...this.analyticsData.airTemp] },
-                { name: 'Humidity (%)', type: 'line', data: [...this.analyticsData.humidity] },
-                { name: 'Water Flow (L/min)', type: 'line', data: [...this.analyticsData.waterFlow] }
-            ], true);
-            this.charts.analytics.updateOptions({
-                xaxis: { categories: [...this.analyticsData.categories] }
-            }, false, true);
-        }
-    },
-    updateApexCharts(payload) {
-        if (this.initialized) return;
-        this.$nextTick(() => this.renderOrUpdateCharts(payload || this.initialChartPayload()));
-    },
-    renderOrUpdateCharts(payload) {
-        if (typeof ApexCharts === 'undefined') return;
-
-        const telemetryOverviewSeries = payload.telemetryOverviewSeries || [];
-        const telemetryOverviewCategories = payload.telemetryOverviewCategories || [];
-        const analyticsSeries = payload.analyticsSeries || [];
-        const analyticsCategories = payload.analyticsCategories || [];
-        // yield charts removed per scope limitations
-
-        if (payload.hasChartTelemetry !== undefined) {
-            this.hasChartTelemetry = Boolean(payload.hasChartTelemetry);
-        }
-
-        if (!this.initialized) {
-            this.overviewData.categories = (telemetryOverviewCategories || []).slice(-100);
-            this.overviewData.ph = (telemetryOverviewSeries[0]?.data || []).slice(-100);
-            this.overviewData.waterTemp = (telemetryOverviewSeries[1]?.data || []).slice(-100);
-            this.overviewData.ec = (telemetryOverviewSeries[2]?.data || []).slice(-100);
-
-            this.analyticsData.categories = (analyticsCategories || []).slice(-100);
-            this.analyticsData.airTemp = (analyticsSeries[0]?.data || []).slice(-100);
-            this.analyticsData.humidity = (analyticsSeries[1]?.data || []).slice(-100);
-            this.analyticsData.waterFlow = (analyticsSeries[2]?.data || []).slice(-100);
-
-            const chartEl = document.querySelector('#telemetryOverviewChart');
-            if (chartEl && !this.charts.telemetryOverview) {
-                const telemetryOverviewOptions = {
-                    series: [
-                        { name: 'Water pH', data: [...this.overviewData.ph] },
-                        { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
-                        { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] }
-                    ],
-                    chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-                    colors: ['#2D6A4F', '#40916C', '#95D5B2'],
-                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] } },
-                    dataLabels: { enabled: false },
-                    stroke: { curve: 'smooth', width: 2.5 },
-                    xaxis: { categories: [...this.overviewData.categories], labels: { style: { colors: '#1B4332' } } },
-                    yaxis: { labels: { style: { colors: '#1B4332' } } },
-                    grid: { borderColor: '#E5E7EB', strokeDashArray: 4 },
-                    legend: { position: 'top', horizontalAlign: 'right' }
-                };
-                this.charts.telemetryOverview = new ApexCharts(chartEl, telemetryOverviewOptions);
-                this.charts.telemetryOverview.render();
-            }
-
-            const analyticsEl = document.querySelector('#analyticsMultiChart');
-            if (analyticsEl && !this.charts.analytics) {
-                const analyticsOptions = {
-                    series: [
-                        { name: 'Air Temp (°C)', type: 'column', data: [...this.analyticsData.airTemp] },
-                        { name: 'Humidity (%)', type: 'line', data: [...this.analyticsData.humidity] },
-                        { name: 'Water Flow (L/min)', type: 'line', data: [...this.analyticsData.waterFlow] }
-                    ],
-                    chart: { height: 320, type: 'line', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-                    stroke: { width: [0, 3, 3], curve: 'smooth' },
-                    colors: ['#D8F3DC', '#2D6A4F', '#40916C'],
-                    plotOptions: { bar: { columnWidth: '40%', borderRadius: 6 } },
-                    labels: [...this.analyticsData.categories],
-                    xaxis: { type: 'category' },
-                    grid: { borderColor: '#F1F5F9' }
-                };
-                this.charts.analytics = new ApexCharts(analyticsEl, analyticsOptions);
-                this.charts.analytics.render();
-            }
-
-            // yieldDistribution chart intentionally removed per scope
-
-            this.initialized = true;
-        }
-    }
-}" x-init="initApexCharts()" x-effect="activeTab; $dispatch('active-tab-changed', activeTab);" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)" x-on:switch-tab.window="activeTab = $event.detail">
+})" x-init="initApexCharts()" x-effect="activeTab; $dispatch('active-tab-changed', activeTab);" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)" x-on:dashboard-device-selected.window="switchTelemetryDevice($event.detail.deviceId)" x-on:switch-tab.window="activeTab = $event.detail">
 
  
 
@@ -203,11 +29,12 @@
         
 
         <!-- KPI METRICS GRID -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">
+        <div wire:ignore class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">
             
             <!-- Air Temp -->
             <x-leaf.kpi-card 
                 title="Air Temp" 
+                sensorKey="air_temperature"
                 value="{{ $temperatureValue }}" 
                 unit="°C" 
                 :status="$temperatureStatusLabel" 
@@ -225,6 +52,7 @@
             <!-- Air Humidity -->
             <x-leaf.kpi-card 
                 title="Air Humidity" 
+                sensorKey="humidity"
                 value="{{ $humidityValue }}" 
                 unit="%" 
                 :status="$humidityStatusLabel" 
@@ -242,6 +70,7 @@
             <!-- Water Temp -->
             <x-leaf.kpi-card 
                 title="Water Temp" 
+                sensorKey="water_temperature"
                 value="{{ $waterTemperatureValue }}" 
                 unit="°C" 
                 :status="$waterTemperatureStatusLabel" 
@@ -259,6 +88,7 @@
             <!-- Water pH -->
             <x-leaf.kpi-card 
                 title="Water pH" 
+                sensorKey="ph"
                 value="{{ $phValue }}" 
                 unit="pH" 
                 :status="$phStatusLabel" 
@@ -276,6 +106,7 @@
             <!-- EC -->
             <x-leaf.kpi-card 
                 title="Nutrient EC" 
+                sensorKey="ec"
                 value="{{ $ecValue }}" 
                 unit="mS/cm" 
                 :status="$ecStatusLabel" 
@@ -293,6 +124,7 @@
             <!-- Water Level -->
             <x-leaf.kpi-card 
                 title="Water Level" 
+                sensorKey="water_level"
                 value="{{ $waterLevelValue }}" 
                 unit="%" 
                 :status="$waterLevelStatusLabel" 
@@ -310,6 +142,7 @@
             <!-- Water Flow -->
             <x-leaf.kpi-card 
                 title="Water Flow" 
+                sensorKey="water_flow"
                 value="{{ $waterFlowValue }}" 
                 unit="L/min" 
                 :status="$waterFlowStatusLabel" 
@@ -606,10 +439,6 @@
                         </div>
                     </div>
 
-                    <div class="pt-2 flex gap-3">
-                        <button wire:click="queueDeviceCommand('restart_node')" type="button" class="flex-1 py-2.5 rounded-xl bg-[#2D6A4F] text-white text-xs font-bold hover:bg-[#1B4332] transition-colors">Restart Node</button>
-                        <button wire:click="queueDeviceCommand('configure_pins')" type="button" class="flex-1 py-2.5 rounded-xl bg-[#2D6A4F]/10 text-[#2D6A4F] text-xs font-bold hover:bg-[#2D6A4F] hover:text-white transition-colors">Configure Pins</button>
-                    </div>
                 </div>
             @empty
                 <div class="p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0">
@@ -732,4 +561,5 @@
 
     </div>
 
+</div>
 </div>

@@ -18,4 +18,5 @@ Route::get('/devices/commands', [DeviceCommandController::class, 'index'])
     ->middleware(['device.auth', 'throttle:device-commands']);
 Route::patch('/devices/commands/{commandId}', [DeviceCommandController::class, 'update'])
     ->middleware(['device.auth', 'throttle:device-commands']);
-Route::get('/device/settings', [\App\Http\Controllers\Api\SystemSettingsController::class, 'index']);
+Route::get('/device/settings', [\App\Http\Controllers\Api\SystemSettingsController::class, 'index'])
+    ->middleware(['device.auth', 'throttle:device-commands']);

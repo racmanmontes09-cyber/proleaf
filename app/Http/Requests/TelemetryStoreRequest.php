@@ -41,7 +41,7 @@ class TelemetryStoreRequest extends FormRequest
             'ec' => ['nullable', 'numeric', 'between:0,20'],
             'water_flow' => ['nullable', 'numeric', 'between:0,500'],
             'water_level' => ['nullable', 'numeric', 'between:0,100'],
-            'measured_at' => ['nullable', 'date'],
+            'measured_at' => ['nullable', 'date', 'before_or_equal:now'],
             'sequence_number' => ['nullable', 'integer', 'min:0'],
             'firmware_version' => ['nullable', 'string', 'max:50'],
             'signal_strength' => ['nullable', 'integer', 'between:-150,0'],

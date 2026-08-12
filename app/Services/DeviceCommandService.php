@@ -8,9 +8,23 @@ use App\Repositories\DeviceCommandRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
 
 class DeviceCommandService
 {
+    public const SUPPORTED_FIRMWARE_COMMANDS = [
+        'cooling_fan',
+        'water_pump',
+        'nutrient_a',
+        'nutrient_pump_a',
+        'nutrient_b',
+        'nutrient_pump_b',
+        'ph_up',
+        'ph_up_pump',
+        'ph_down',
+        'ph_down_pump',
+    ];
+
     public function __construct(protected DeviceCommandRepository $commandRepository)
     {
     }
@@ -24,6 +38,10 @@ class DeviceCommandService
         ?Carbon $expiresAt = null,
         array $metadata = []
     ): DeviceCommand {
+        if (! in_array($command, self::SUPPORTED_FIRMWARE_COMMANDS, true)) {
+            throw new InvalidArgumentException("Unsupported firmware command: {$command}");
+        }
+
         $duplicate = $this->commandRepository->findDuplicatePending($device, $command, $payload);
 
         if ($duplicate !== null) {

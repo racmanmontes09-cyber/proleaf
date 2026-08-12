@@ -156,6 +156,10 @@ class DeviceStatus extends Component
 
     public array $analyticsCategories = [];
 
+    public array $telemetryChartReadings = [];
+
+    public array $telemetryKpis = [];
+
     // Yield-related properties removed to enforce research scope (telemetry-only)
     public bool $hasChartTelemetry = false;
 
@@ -200,6 +204,8 @@ class DeviceStatus extends Component
                 telemetryOverviewCategories: $this->telemetryOverviewCategories,
                 analyticsSeries: $this->analyticsSeries,
                 analyticsCategories: $this->analyticsCategories,
+                telemetryChartReadings: $this->telemetryChartReadings,
+                telemetryKpis: $this->telemetryKpis,
                 // yieldSeries and yieldLabels intentionally omitted
                 hasChartTelemetry: $this->hasChartTelemetry,
                 hasYieldData: $this->hasYieldData,
@@ -209,9 +215,16 @@ class DeviceStatus extends Component
 
     public function refreshDashboardLight(DashboardService $dashboardService): void
     {
+        $previousDeviceId = $this->device?->id;
+
         // Polling only updates alerts, heartbeat, device status, command queue, settings
         // Telemetry charts are NOT reloaded through Livewire polling
         $this->applyDashboardData($dashboardService->getDashboardData($this->alertSeverityFilter, false));
+
+        $currentDeviceId = $this->device?->id;
+        if ($currentDeviceId !== $previousDeviceId) {
+            $this->dispatch('dashboard-device-selected', deviceId: $currentDeviceId);
+        }
     }
 
     protected function applyDashboardData(array $data): void
@@ -247,12 +260,13 @@ class DeviceStatus extends Component
             $this->commandStatusMessage = 'Forbidden.';
             return;
         }
+        if (! in_array($command, DeviceCommandService::SUPPORTED_FIRMWARE_COMMANDS, true)) {
+            $this->commandStatusMessage = 'Unsupported device command.';
+            return;
+        }
+
         $commandService = app(DeviceCommandService::class);
-        $title = match ($command) {
-            'restart_node' => 'Restart Node',
-            'configure_pins' => 'Configure Pins',
-            default => ucwords(str_replace('_', ' ', $command)),
-        };
+        $title = ucwords(str_replace('_', ' ', $command));
 
         $commandService->queueCommand(
             $this->device,
