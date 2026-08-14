@@ -122,13 +122,7 @@
                         </div>
                     </a>
 
-                    <!-- Center: Desktop Navigation Links -->
-                    <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
-                        <a href="#home" class="px-4 py-2 rounded-lg text-sm font-medium text-[#1B4332]/80 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">Home</a>
-                        <a href="#features" class="px-4 py-2 rounded-lg text-sm font-medium text-[#1B4332]/80 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">Features</a>
-                        <a href="#preview" class="px-4 py-2 rounded-lg text-sm font-medium text-[#1B4332]/80 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">Dashboard Preview</a>
-                        <a href="#about" class="px-4 py-2 rounded-lg text-sm font-medium text-[#1B4332]/80 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">About</a>
-                    </nav>
+                
 
                     <!-- Right: Auth Buttons & Dashboard Link -->
                     <div class="hidden md:flex items-center space-x-4">
@@ -895,7 +889,68 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 7. FOOTER                                  -->
+        <!-- 7. DEVELOPMENT TEAM                        -->
+        <!-- ========================================== -->
+        <section id="developers" class="py-20 sm:py-24 bg-white/80 border-t border-[#2D6A4F]/10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                        Development Team
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight">
+                        Built by the Project L.E.A.F. Developers
+                    </h2>
+                    <p class="text-base sm:text-lg text-[#1B4332]/75">
+                        The people behind the dashboard, telemetry pipeline, and hydroponic automation stack.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6">
+                    <div class="group rounded-3xl bg-white border border-[#2D6A4F]/12 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                        <div class="aspect-square p-5 sm:p-6 flex items-center justify-center bg-[#F8FAF8]">
+                            <img src="{{ asset('images/bangaoil.png') }}" alt="Developer Bangaoil" class="h-full w-full max-w-[180px] max-h-[180px] rounded-full object-cover ring-4 ring-white shadow-md transition-transform duration-300 group-hover:scale-105">
+                        </div>
+                        <div class="p-4 sm:p-5">
+                            <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Myra A. Bangaoil</h3>
+                            <p class="text-xs sm:text-sm text-[#1B4332]/70">QA tester</p>
+                        </div>
+                    </div>
+
+                    <div class="group rounded-3xl bg-white border border-[#2D6A4F]/12 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                        <div class="aspect-square p-5 sm:p-6 flex items-center justify-center bg-[#F8FAF8]">
+                            <img src="{{ asset('images/barnachea.png') }}" alt="Developer Barnachea" class="h-full w-full max-w-[180px] max-h-[180px] rounded-full object-cover ring-4 ring-white shadow-md transition-transform duration-300 group-hover:scale-105">
+                        </div>
+                        <div class="p-4 sm:p-5">
+                            <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Rory M. Barnachea</h3>
+                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Technical Writer</p>
+                        </div>
+                    </div>
+
+                    <div class="group rounded-3xl bg-white border border-[#2D6A4F]/12 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                        <div class="aspect-square p-5 sm:p-6 flex items-center justify-center bg-[#F8FAF8]">
+                            <img src="{{ asset('images/lagrana.jpeg') }}" alt="Developer Lagrana" class="h-full w-full max-w-[180px] max-h-[180px] rounded-full object-cover ring-4 ring-white shadow-md transition-transform duration-300 group-hover:scale-105">
+                        </div>
+                        <div class="p-4 sm:p-5">
+                            <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Christian C. Lagrana</h3>
+                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Programmer</p>
+                        </div>
+                    </div>
+
+                    <div class="group rounded-3xl bg-white border border-[#2D6A4F]/12 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                        <div class="aspect-square p-5 sm:p-6 flex items-center justify-center bg-[#F8FAF8]">
+                            <img src="{{ asset('images/montes.jpeg') }}" alt="Developer Montes" class="h-full w-full max-w-[180px] max-h-[180px] rounded-full object-cover ring-4 ring-white shadow-md transition-transform duration-300 group-hover:scale-105">
+                        </div>
+                        <div class="p-4 sm:p-5">
+                            <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Racman N. Montes</h3>
+                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Project Manager</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 8. FOOTER                                  -->
         <!-- ========================================== -->
         <footer class="bg-[#1B4332] text-white border-t border-[#2D6A4F]/30 pt-16 pb-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

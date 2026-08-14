@@ -3,10 +3,30 @@
     activeTab: 'dashboard',
     hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
     deviceId: {{ json_encode($device?->id) }},
+    useEchoTelemetry: {{ json_encode((bool) config('leaf.dashboard.live_chart.realtime_enabled', true)) }},
+    pollingFallbackEnabled: {{ json_encode((bool) config('leaf.dashboard.live_chart.polling_fallback_enabled', false)) }},
     pollingUrl: {{ json_encode(route('dashboard.telemetry.readings', [], false)) }},
-    maxPoints: {{ (int) config('leaf.dashboard.live_chart.max_points', 60) }},
+    maxPoints: {{ (int) config('leaf.dashboard.live_chart.max_points', 120) }},
+    bufferPoints: {{ (int) config('leaf.dashboard.live_chart.buffer_points', 150) }},
     pollIntervalMs: {{ (int) config('leaf.dashboard.live_chart.poll_interval_ms', 1000) }},
     pollBatchLimit: {{ (int) config('leaf.dashboard.live_chart.poll_batch_limit', 120) }},
+    debugTelemetryCharts: {{ json_encode((bool) config('leaf.dashboard.live_chart.debug', false)) }},
+    thresholds: {
+        temperatureLow: {{ json_encode($temperatureLowThreshold) }},
+        temperatureHigh: {{ json_encode($temperatureHighThreshold) }},
+        humidityLow: {{ json_encode($humidityLowThreshold) }},
+        humidityHigh: {{ json_encode($humidityHighThreshold) }},
+        waterTemperatureLow: {{ json_encode($waterTemperatureLowThreshold) }},
+        waterTemperatureHigh: {{ json_encode($waterTemperatureHighThreshold) }},
+        phLow: {{ json_encode($phLowThreshold) }},
+        phHigh: {{ json_encode($phHighThreshold) }},
+        ecLow: {{ json_encode($ecLowThreshold) }},
+        ecHigh: {{ json_encode($ecHighThreshold) }},
+        waterLevelLow: {{ json_encode($waterLevelLowThreshold) }},
+        waterLevelHigh: {{ json_encode($waterLevelHighThreshold) }},
+        waterFlowLow: {{ json_encode($waterFlowLowThreshold) }},
+        waterFlowHigh: {{ json_encode($waterFlowHighThreshold) }},
+    },
     initialKpis: {{ json_encode($telemetryKpis) }},
     initialChartPayload: {
         telemetryChartReadings: {{ json_encode($telemetryChartReadings) }},
@@ -25,9 +45,6 @@
     <!-- TAB CONTENT 1: DASHBOARD OVERVIEW           -->
     <!-- ========================================== -->
     <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
-        
-        
-
         <!-- KPI METRICS GRID -->
         <div wire:ignore class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">
             
@@ -170,7 +187,7 @@
                         <p class="text-xs text-[#1B4332]/70 truncate">Solution pH, Water Temp (°C) and Electrical Conductivity (EC)</p>
                     </div>
                     <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#95D5B2]/30 text-[#1B4332] shrink-0">
-                        Live HTTP API Feed
+                        Live WebSocket Feed
                     </span>
                 </div>
 
@@ -183,7 +200,7 @@
 
             <!-- Right Column: Node Specs & Relays (4 Cols) -->
             <div class="xl:col-span-4 space-y-6 min-w-0">
-                
+
                 <!-- Controller Card -->
                 <div class="p-3 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 min-w-0">
                     <div class="flex items-center justify-between pb-2 border-b border-gray-100 min-w-0">

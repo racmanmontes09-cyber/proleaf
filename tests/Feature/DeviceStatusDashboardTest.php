@@ -42,6 +42,96 @@ class DeviceStatusDashboardTest extends TestCase
             ->assertSet('hasChartTelemetry', true);
     }
 
+    public function test_dashboard_prefers_configured_local_device_when_it_exists(): void
+    {
+        $latestDevice = Device::create([
+            'device_id' => 'LEAF-ESP32-OTHER',
+            'name' => 'Other ESP32',
+            'last_seen_at' => now(),
+        ]);
+        $latestDevice->telemetries()->create([
+            'air_temperature' => 99.9,
+            'water_temperature' => 40.0,
+            'measured_at' => now(),
+        ]);
+
+        $targetDevice = new Device([
+            'device_id' => 'esp32-001',
+            'name' => 'Greenhouse ESP32',
+            'last_seen_at' => now()->subHour(),
+        ]);
+        $targetDevice->id = 358;
+        $targetDevice->save();
+
+        $targetDevice->telemetries()->create([
+            'air_temperature' => 30.5,
+            'humidity' => 72,
+            'water_temperature' => 26.4,
+            'ph' => 6.4,
+            'ec' => 1.6,
+            'water_flow' => 1.2,
+            'water_level' => 74,
+            'measured_at' => now()->subMinute(),
+        ]);
+
+        Livewire::test(DeviceStatus::class)
+            ->assertSet('device.id', 358)
+            ->assertSet('temperatureValue', '30.5')
+            ->assertSet('humidityValue', '72')
+            ->assertSet('waterTemperatureValue', '26.4')
+            ->assertSet('phValue', '6.4')
+            ->assertSet('ecValue', '1.6')
+            ->assertSet('waterFlowValue', '1.2')
+            ->assertSet('waterLevelValue', '74')
+            ->assertSet('hasChartTelemetry', true);
+    }
+
+    public function test_dashboard_uses_real_telemetry_for_initial_display_even_when_fake_rows_exist(): void
+    {
+        $targetDevice = new Device([
+            'device_id' => 'esp32-001',
+            'name' => 'Greenhouse ESP32',
+            'last_seen_at' => now(),
+        ]);
+        $targetDevice->id = 358;
+        $targetDevice->save();
+
+        $targetDevice->telemetries()->create([
+            'air_temperature' => 29.5,
+            'humidity' => 64,
+            'water_temperature' => 25.1,
+            'ph' => 6.2,
+            'ec' => 1.4,
+            'water_flow' => 0.9,
+            'water_level' => 68,
+            'measured_at' => now()->subMinutes(6),
+            'firmware_version' => 'leaf-fake-dashboard-telemetry',
+        ]);
+
+        $targetDevice->telemetries()->create([
+            'air_temperature' => 30.5,
+            'humidity' => 72,
+            'water_temperature' => 26.4,
+            'ph' => 6.4,
+            'ec' => 1.6,
+            'water_flow' => 1.2,
+            'water_level' => 74,
+            'measured_at' => now()->subMinute(),
+            'firmware_version' => '1.0.0',
+        ]);
+
+        Livewire::test(DeviceStatus::class)
+            ->assertSet('device.id', 358)
+            ->assertSet('temperatureValue', '30.5')
+            ->assertSet('humidityValue', '72')
+            ->assertSet('waterTemperatureValue', '26.4')
+            ->assertSet('phValue', '6.4')
+            ->assertSet('ecValue', '1.6')
+            ->assertSet('waterFlowValue', '1.2')
+            ->assertSet('waterLevelValue', '74')
+            ->assertSet('hasChartTelemetry', true);
+    }
+
 
     public function test_dashboard_chart_payload_survives_browser_attribute_parsing(): void
     {

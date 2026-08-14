@@ -6,6 +6,7 @@ use App\Models\Device;
 use App\Services\TelemetryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class DashboardTelemetryController extends Controller
 {
@@ -36,9 +37,7 @@ class DashboardTelemetryController extends Controller
         $limit = (int) ($validated['limit'] ?? ($afterId > 0 ? $configuredBatchLimit : $configuredMaxPoints));
         $limit = max(1, min($limit, 500));
 
-        $readings = $afterId > 0
-            ? $telemetryService->getTelemetryAfterId($device, $afterId, $limit)
-            : $telemetryService->getTelemetryHistory($device, $limit);
+        $readings = $this->getTelemetryReadings($device, $telemetryService, $afterId, $limit);
 
         $latestReading = $readings->last();
 
@@ -62,6 +61,26 @@ class DashboardTelemetryController extends Controller
             return $device;
         }
 
+        $configuredDeviceId = (int) config('leaf.dashboard.device_db_id', 358);
+        if ($configuredDeviceId > 0) {
+            $configuredDevice = Device::query()->find($configuredDeviceId);
+
+            if ($configuredDevice instanceof Device) {
+                return $configuredDevice;
+            }
+        }
+
         return Device::query()->latest('last_seen_at')->first();
+    }
+
+    private function getTelemetryReadings(
+        Device $device,
+        TelemetryService $telemetryService,
+        int $afterId,
+        int $limit
+    ): Collection {
+        return $afterId > 0
+            ? $telemetryService->getTelemetryAfterId($device, $afterId, $limit)
+            : $telemetryService->getTelemetryHistory($device, $limit);
     }
 }

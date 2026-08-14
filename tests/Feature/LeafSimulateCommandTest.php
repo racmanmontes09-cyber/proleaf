@@ -103,6 +103,65 @@ class LeafSimulateCommandTest extends TestCase
         }
     }
 
+    public function test_fake_dashboard_telemetry_command_creates_repeatable_records_for_device_358(): void
+    {
+        $device = new Device([
+            'device_id' => 'esp32-001',
+            'name' => 'Greenhouse ESP32',
+            'last_seen_at' => now()->subHour(),
+        ]);
+        $device->id = 358;
+        $device->save();
+
+        $this->artisan('leaf:fake-dashboard-telemetry')
+            ->assertExitCode(0);
+
+        $readings = $device->telemetries()
+            ->where('firmware_version', 'leaf-fake-dashboard-telemetry')
+            ->orderBy('measured_at')
+            ->get();
+
+        $this->assertCount(50, $readings);
+        $this->assertSame(358, $readings->first()->device_id);
+        $this->assertSame(range(1, 50), $readings->pluck('sequence_number')->all());
+
+        foreach ($readings as $reading) {
+            $this->assertGreaterThanOrEqual(29.0, $reading->air_temperature);
+            $this->assertLessThanOrEqual(34.0, $reading->air_temperature);
+            $this->assertGreaterThanOrEqual(60.0, $reading->humidity);
+            $this->assertLessThanOrEqual(80.0, $reading->humidity);
+            $this->assertGreaterThanOrEqual(25.0, $reading->water_temperature);
+            $this->assertLessThanOrEqual(29.0, $reading->water_temperature);
+            $this->assertGreaterThanOrEqual(5.8, $reading->ph);
+            $this->assertLessThanOrEqual(6.8, $reading->ph);
+            $this->assertGreaterThanOrEqual(1.0, $reading->ec);
+            $this->assertLessThanOrEqual(1.8, $reading->ec);
+            $this->assertGreaterThanOrEqual(0.8, $reading->water_flow);
+            $this->assertLessThanOrEqual(1.8, $reading->water_flow);
+            $this->assertGreaterThanOrEqual(65.0, $reading->water_level);
+            $this->assertLessThanOrEqual(90.0, $reading->water_level);
+            $this->assertNotNull($reading->measured_at);
+        }
+
+        $this->artisan('leaf:fake-dashboard-telemetry', [
+            '--replace' => true,
+        ])->assertExitCode(0);
+
+        $this->assertSame(
+            50,
+            $device->telemetries()->where('firmware_version', 'leaf-fake-dashboard-telemetry')->count()
+        );
+
+        $this->artisan('leaf:fake-dashboard-telemetry', [
+            '--clear' => true,
+        ])->assertExitCode(0);
+
+        $this->assertSame(
+            0,
+            $device->telemetries()->where('firmware_version', 'leaf-fake-dashboard-telemetry')->count()
+        );
+    }
+
     public function test_live_dashboard_simulator_refuses_token_for_another_device(): void
     {
         $device = Device::create([

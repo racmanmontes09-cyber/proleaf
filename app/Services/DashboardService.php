@@ -26,10 +26,11 @@ class DashboardService
         $thresholds = $this->thresholdService->getAllThresholds();
         $devices = $this->telemetryService->getDevicesWithTelemetries(2);
 
-        $device = $devices->first();
-        $latestTelemetry = $device?->latestTelemetry;
-
+        $device = $this->resolveDashboardDevice($devices);
         $telemetryHistory = $includeCharts ? $this->getTelemetryHistoryForDashboard($device) : collect();
+        $latestTelemetry = $includeCharts && $telemetryHistory->isNotEmpty()
+            ? $telemetryHistory->last()
+            : $this->getLatestTelemetryForDashboard($device);
 
         $deviceStatusLabel = $this->deviceStatusService->getDeviceStatusLabel($device);
         $deviceStatusType = $this->deviceStatusService->getDeviceStatusType($device);
@@ -214,10 +215,10 @@ class DashboardService
             return collect();
         }
 
-        $cacheKey = 'dashboard.telemetry-history.'.$device->id;
+        $cacheKey = 'dashboard.telemetry-history.'.$device->id.'.live';
 
         $cachedPayload = Cache::remember($cacheKey, 5, function () use ($device): array {
-            return $this->telemetryService->getTelemetryHistory($device, 100)
+            return $this->getTelemetryHistory($device, 100)
                 ->map(fn (Telemetry $telemetry): array => $telemetry->getAttributes())
                 ->values()
                 ->all();
@@ -226,7 +227,7 @@ class DashboardService
         if (! is_array($cachedPayload)) {
             Cache::forget($cacheKey);
 
-            $cachedPayload = $this->telemetryService->getTelemetryHistory($device, 100)
+            $cachedPayload = $this->getTelemetryHistory($device, 100)
                 ->map(fn (Telemetry $telemetry): array => $telemetry->getAttributes())
                 ->values()
                 ->all();
@@ -236,4 +237,37 @@ class DashboardService
 
         return Telemetry::hydrate($cachedPayload);
     }
+
+    protected function getLatestTelemetryForDashboard(?Device $device): ?Telemetry
+    {
+        if ($device === null) {
+            return null;
+        }
+
+        return $device->latestTelemetry;
+    }
+
+    protected function getTelemetryHistory(Device $device, int $limit): Collection
+    {
+        return $this->telemetryService->getTelemetryHistory($device, $limit);
+    }
+
+    protected function resolveDashboardDevice(Collection $devices): ?Device
+    {
+        $configuredDeviceId = (int) config('leaf.dashboard.device_db_id', 358);
+
+        if ($configuredDeviceId > 0) {
+            $configuredDevice = $devices->firstWhere('id', $configuredDeviceId)
+                ?? Device::query()
+                    ->with('latestTelemetry')
+                    ->find($configuredDeviceId);
+
+            if ($configuredDevice instanceof Device) {
+                return $configuredDevice;
+            }
+        }
+
+        return $devices->first();
+    }
+
 }

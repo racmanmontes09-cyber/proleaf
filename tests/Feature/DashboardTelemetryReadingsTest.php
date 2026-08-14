@@ -53,6 +53,122 @@ class DashboardTelemetryReadingsTest extends TestCase
         );
     }
 
+    public function test_dashboard_telemetry_readings_default_to_configured_local_device_when_present(): void
+    {
+        $user = User::factory()->create();
+
+        $otherDevice = Device::create([
+            'device_id' => 'LEAF-ESP32-OTHER',
+            'name' => 'Other ESP32',
+            'last_seen_at' => now(),
+        ]);
+        $otherDevice->telemetries()->create([
+            'ph' => 9.9,
+            'measured_at' => now(),
+        ]);
+
+        $targetDevice = new Device([
+            'device_id' => 'esp32-001',
+            'name' => 'Greenhouse ESP32',
+            'last_seen_at' => now()->subHour(),
+        ]);
+        $targetDevice->id = 358;
+        $targetDevice->save();
+
+        $targetDevice->telemetries()->create([
+            'air_temperature' => 30.5,
+            'humidity' => 72,
+            'water_temperature' => 26.4,
+            'ph' => 6.4,
+            'ec' => 1.6,
+            'water_flow' => 1.2,
+            'water_level' => 74,
+            'measured_at' => now()->subMinute(),
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/dashboard/telemetry/readings');
+
+        $response->assertOk()
+            ->assertJsonPath('device_id', 358)
+            ->assertJsonPath('readings.0.ph', 6.4)
+            ->assertJsonPath('latest_kpis.air_temperature.value', '30.5')
+            ->assertJsonPath('latest_kpis.water_level.value', '74');
+    }
+
+    public function test_dashboard_telemetry_readings_return_real_telemetry_even_when_fake_rows_exist(): void
+    {
+        $user = User::factory()->create();
+
+        $targetDevice = new Device([
+            'device_id' => 'esp32-001',
+            'name' => 'Greenhouse ESP32',
+            'last_seen_at' => now(),
+        ]);
+        $targetDevice->id = 358;
+        $targetDevice->save();
+
+        $targetDevice->telemetries()->create([
+            'air_temperature' => 29.5,
+            'humidity' => 64,
+            'water_temperature' => 25.1,
+            'ph' => 6.2,
+            'ec' => 1.4,
+            'water_flow' => 0.9,
+            'water_level' => 68,
+            'measured_at' => now()->subMinutes(6),
+            'firmware_version' => 'leaf-fake-dashboard-telemetry',
+        ]);
+
+        $oldReal = $targetDevice->telemetries()->create([
+            'air_temperature' => 30.5,
+            'humidity' => 72,
+            'water_temperature' => 26.4,
+            'ph' => 6.4,
+            'ec' => 1.6,
+            'water_flow' => 1.2,
+            'water_level' => 74,
+            'measured_at' => now()->subMinutes(5),
+            'firmware_version' => '1.0.0',
+        ]);
+
+        $newOne = $targetDevice->telemetries()->create([
+            'air_temperature' => 31.1,
+            'humidity' => 73,
+            'water_temperature' => 26.8,
+            'ph' => 6.5,
+            'ec' => 1.7,
+            'water_flow' => 1.3,
+            'water_level' => 75,
+            'measured_at' => now()->subMinutes(3),
+            'firmware_version' => '1.0.0',
+        ]);
+
+        $newTwo = $targetDevice->telemetries()->create([
+            'air_temperature' => 31.4,
+            'humidity' => 74,
+            'water_temperature' => 27.0,
+            'ph' => 6.6,
+            'ec' => 1.8,
+            'water_flow' => 1.4,
+            'water_level' => 76,
+            'measured_at' => now()->subMinute(),
+            'firmware_version' => '1.0.0',
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/dashboard/telemetry/readings?device_id='.$targetDevice->id.'&after_id='.$oldReal->id.'&limit=120');
+
+        $response->assertOk()
+            ->assertJsonPath('device_id', 358)
+            ->assertJsonPath('after_id', $oldReal->id)
+            ->assertJsonPath('latest_id', $newTwo->id)
+            ->assertJsonCount(2, 'readings')
+            ->assertJsonPath('readings.0.id', $newOne->id)
+            ->assertJsonPath('readings.1.id', $newTwo->id)
+            ->assertJsonPath('readings.1.air_temperature', 31.4)
+            ->assertJsonPath('latest_kpis.air_temperature.value', '31.4')
+            ->assertJsonPath('latest_kpis.water_flow.value', '1.4');
+    }
+
     public function test_dashboard_telemetry_readings_filter_after_id_for_selected_device(): void
     {
         $user = User::factory()->create();

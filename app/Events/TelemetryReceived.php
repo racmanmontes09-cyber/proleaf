@@ -5,22 +5,45 @@ namespace App\Events;
 use App\Models\Telemetry;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 
-class TelemetryReceived implements ShouldBroadcastNow
+class TelemetryReceived implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets;
 
-    public Telemetry $telemetry;
+    public int $deviceId;
+
+    /**
+     * @var array<string, mixed>
+     */
+    public array $payload;
 
     /**
      * Create a new event instance.
      */
     public function __construct(Telemetry $telemetry)
     {
-        $this->telemetry = $telemetry;
+        $this->deviceId = (int) $telemetry->device_id;
+
+        $measuredAt = $telemetry->measured_at ?? $telemetry->updated_at ?? $telemetry->created_at;
+
+        $this->payload = [
+            'id' => (int) $telemetry->id,
+            'device_id' => $this->deviceId,
+            'timestamp' => $this->serializeTimestamp($measuredAt),
+            'measured_at' => $this->serializeTimestamp($telemetry->measured_at),
+            'received_at' => $this->serializeTimestamp($telemetry->received_at),
+            'air_temperature' => $telemetry->air_temperature !== null ? (float) $telemetry->air_temperature : null,
+            'humidity' => $telemetry->humidity !== null ? (float) $telemetry->humidity : null,
+            'water_temperature' => $telemetry->water_temperature !== null ? (float) $telemetry->water_temperature : null,
+            'ph' => $telemetry->ph !== null ? (float) $telemetry->ph : null,
+            'ec' => $telemetry->ec !== null ? (float) $telemetry->ec : null,
+            'water_flow' => $telemetry->water_flow !== null ? (float) $telemetry->water_flow : null,
+            'water_level' => $telemetry->water_level !== null ? (float) $telemetry->water_level : null,
+        ];
     }
 
     /**
@@ -31,8 +54,13 @@ class TelemetryReceived implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('devices.'.$this->telemetry->device_id.'.telemetry'),
+            new PrivateChannel('devices.'.$this->deviceId.'.telemetry'),
         ];
+    }
+
+    public function broadcastQueue(): string
+    {
+        return 'broadcasts';
     }
 
     /**
@@ -50,22 +78,19 @@ class TelemetryReceived implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        $measuredAt = $this->telemetry->measured_at;
-        if ($measuredAt instanceof \DateTimeInterface) {
-            $measuredAt = $measuredAt->toIso8601String();
+        return $this->payload;
+    }
+
+    private function serializeTimestamp(mixed $timestamp): ?string
+    {
+        if ($timestamp === null || $timestamp === '') {
+            return null;
         }
 
-        return [
-            'id' => (int) $this->telemetry->id,
-            'device_id' => $this->telemetry->device_id,
-            'air_temperature' => $this->telemetry->air_temperature !== null ? (float) $this->telemetry->air_temperature : null,
-            'humidity' => $this->telemetry->humidity !== null ? (float) $this->telemetry->humidity : null,
-            'water_temperature' => $this->telemetry->water_temperature !== null ? (float) $this->telemetry->water_temperature : null,
-            'ph' => $this->telemetry->ph !== null ? (float) $this->telemetry->ph : null,
-            'ec' => $this->telemetry->ec !== null ? (float) $this->telemetry->ec : null,
-            'water_flow' => $this->telemetry->water_flow !== null ? (float) $this->telemetry->water_flow : null,
-            'water_level' => $this->telemetry->water_level !== null ? (float) $this->telemetry->water_level : null,
-            'measured_at' => $measuredAt,
-        ];
+        $carbon = $timestamp instanceof \DateTimeInterface
+            ? Carbon::instance($timestamp)
+            : Carbon::parse($timestamp);
+
+        return $carbon->utc()->format('Y-m-d\TH:i:s.u\Z');
     }
 }

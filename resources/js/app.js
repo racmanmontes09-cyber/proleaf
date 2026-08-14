@@ -5,18 +5,71 @@ window.Pusher = Pusher;
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
-window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
+const envValue = (value) => {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed || (trimmed.startsWith('${') && trimmed.endsWith('}'))) {
+        return undefined;
+    }
+
+    return trimmed;
+};
+
+const isLoopbackHost = (host) => ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(String(host || '').toLowerCase());
+const pageHost = window.location.hostname;
+const resolveBrowserRealtimeHost = (configuredHost, driver) => {
+    if (configuredHost && isLoopbackHost(configuredHost) && pageHost && !isLoopbackHost(pageHost)) {
+        return pageHost;
+    }
+
+    return configuredHost || (driver === 'reverb' ? pageHost : undefined);
+};
+
+const broadcastDriver = envValue(import.meta.env.VITE_BROADCAST_CONNECTION)
+    || envValue(import.meta.env.VITE_BROADCAST_DRIVER)
+    || 'reverb';
+const reverbScheme = envValue(import.meta.env.VITE_REVERB_SCHEME)
+    || envValue(import.meta.env.VITE_PUSHER_SCHEME)
+    || 'http';
+const configuredRealtimeHost = envValue(import.meta.env.VITE_REVERB_HOST)
+    || envValue(import.meta.env.VITE_PUSHER_HOST);
+const reverbHost = resolveBrowserRealtimeHost(configuredRealtimeHost, broadcastDriver);
+const reverbPort = envValue(import.meta.env.VITE_REVERB_PORT)
+    || envValue(import.meta.env.VITE_PUSHER_PORT)
+    || (reverbScheme === 'https' ? 443 : 8080);
+const broadcastKey = envValue(import.meta.env.VITE_REVERB_APP_KEY)
+    || envValue(import.meta.env.VITE_PUSHER_APP_KEY);
+
+const echoOptions = {
+    broadcaster: broadcastDriver,
+    key: broadcastKey,
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-    forceTLS: true,
+    forceTLS: reverbScheme === 'https',
     authEndpoint: '/broadcasting/auth',
     auth: {
         headers: {
             'X-CSRF-TOKEN': csrfToken,
         },
     },
-});
+};
+
+if (reverbHost) {
+    echoOptions.wsHost = reverbHost;
+}
+if (reverbPort) {
+    echoOptions.wsPort = Number(reverbPort);
+    echoOptions.wssPort = Number(reverbPort);
+}
+echoOptions.enabledTransports = ['ws', 'wss'];
+
+if (broadcastKey) {
+    window.Echo = new Echo(echoOptions);
+} else {
+    console.warn('Echo not started: missing Vite broadcast app key.');
+}
 
 if (window.Echo?.connector?.pusher?.connection) {
     const pusherConnection = window.Echo.connector.pusher.connection;
@@ -60,6 +113,29 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
     }));
 
     const emptyPulseState = () => Object.fromEntries(kpiKeys.map((key) => [key, false]));
+    const parseNullableNumber = (value) => {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+    const threshold = (low, high, lowLabel = 'LOW', highLabel = 'HIGH') => ({
+        low: parseNullableNumber(low),
+        high: parseNullableNumber(high),
+        lowLabel,
+        highLabel,
+    });
+    const normalizeThresholds = (thresholds = {}) => ({
+        air_temperature: threshold(thresholds.temperatureLow, thresholds.temperatureHigh),
+        humidity: threshold(thresholds.humidityLow, thresholds.humidityHigh),
+        water_temperature: threshold(thresholds.waterTemperatureLow, thresholds.waterTemperatureHigh),
+        ph: threshold(thresholds.phLow, thresholds.phHigh),
+        ec: threshold(thresholds.ecLow, thresholds.ecHigh),
+        water_level: threshold(thresholds.waterLevelLow, thresholds.waterLevelHigh, 'LOW', 'FULL'),
+        water_flow: threshold(thresholds.waterFlowLow, thresholds.waterFlowHigh, 'LOW FLOW', 'HIGH FLOW'),
+    });
 
     return {
         activeTab: config.activeTab || 'dashboard',
@@ -69,16 +145,27 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         polling: false,
         pollTimer: null,
         useEchoTelemetry: Boolean(config.useEchoTelemetry),
+        pollingFallbackEnabled: Boolean(config.pollingFallbackEnabled),
+        debugTelemetryCharts: Boolean(config.debugTelemetryCharts),
+        telemetryChannelName: null,
+        telemetryHandler: null,
+        realtimeConnected: false,
+        destroyed: false,
         deviceId: config.deviceId || null,
         pollingUrl: config.pollingUrl || '/dashboard/telemetry/readings',
-        maxPoints: Number.parseInt(config.maxPoints || 60, 10),
+        maxPoints: Number.parseInt(config.maxPoints || 120, 10),
+        bufferPoints: Number.parseInt(config.bufferPoints || 150, 10),
         pollIntervalMs: Number.parseInt(config.pollIntervalMs || 1000, 10),
         pollBatchLimit: Number.parseInt(config.pollBatchLimit || 120, 10),
         lastReadingId: 0,
+        lastReadingTimestamp: Number.NEGATIVE_INFINITY,
+        seenReadingIds: new Set(),
+        loadingInitialHistory: false,
         kpiKeys,
         kpis: normalizeKpiState(config.initialKpis || config.initialChartPayload?.telemetryKpis),
         kpiPulse: emptyPulseState(),
         kpiPulseTimers: {},
+        thresholds: normalizeThresholds(config.thresholds || {}),
         charts: {
             telemetryOverview: null,
             analytics: null,
@@ -108,24 +195,136 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         },
         initApexCharts() {
             this.$nextTick(() => {
-                this.renderOrUpdateCharts(this.initialChartPayload());
-                this.listenToPusher();
-                this.startTelemetryPolling();
+                this.bootstrapTelemetryDashboard();
             });
+        },
+        logChartDebug(action, payload = {}) {
+            if (!this.debugTelemetryCharts) {
+                return;
+            }
+
+            console.debug(`[CHART] ${action}`, payload);
+        },
+        async bootstrapTelemetryDashboard() {
+            const initialPayload = await this.fetchTelemetryHistoryPayload(this.initialChartPayload());
+
+            if (this.destroyed) {
+                return;
+            }
+
+            this.renderOrUpdateCharts(initialPayload);
+            this.listenToPusher();
+            this.startTelemetryPolling();
+        },
+        async fetchTelemetryHistoryPayload(fallbackPayload = {}) {
+            if (!this.pollingUrl) {
+                return fallbackPayload;
+            }
+
+            const requestedDeviceId = this.normalizeDeviceId(this.deviceId);
+            this.loadingInitialHistory = true;
+
+            try {
+                const url = new URL(this.pollingUrl, window.location.origin);
+                if (requestedDeviceId) {
+                    url.searchParams.set('device_id', requestedDeviceId);
+                }
+                url.searchParams.set('limit', String(this.maxPoints));
+
+                const response = await fetch(url, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Initial telemetry history failed with status ${response.status}`);
+                }
+
+                const json = await response.json();
+                if (this.destroyed) {
+                    return fallbackPayload;
+                }
+                if (requestedDeviceId && this.normalizeDeviceId(this.deviceId) !== requestedDeviceId) {
+                    return fallbackPayload;
+                }
+
+                this.applyResponseDeviceId(json.device_id, false);
+
+                return this.chartPayloadFromTelemetryResponse(json, fallbackPayload);
+            } catch (error) {
+                console.debug('Initial telemetry history error:', error);
+                return fallbackPayload;
+            } finally {
+                this.loadingInitialHistory = false;
+            }
+        },
+        chartPayloadFromTelemetryResponse(json, fallbackPayload = {}) {
+            const responseHasReadings = Array.isArray(json?.readings);
+            const readings = responseHasReadings ? json.readings : [];
+
+            return {
+                ...fallbackPayload,
+                telemetryChartReadings: readings,
+                telemetryKpis: json?.latest_kpis || fallbackPayload.telemetryKpis || null,
+                hasChartTelemetry: responseHasReadings ? readings.length > 0 : Boolean(fallbackPayload.hasChartTelemetry),
+            };
         },
         listenToPusher() {
             if (!this.useEchoTelemetry || typeof window.Echo === 'undefined' || this.subscribed || !this.deviceId) {
                 return;
             }
 
+            const channelName = `devices.${this.deviceId}.telemetry`;
+            if (this.telemetryChannelName && this.telemetryChannelName !== channelName) {
+                this.leaveTelemetryChannel();
+            }
+
             this.subscribed = true;
-            const channel = window.Echo.private(`devices.${this.deviceId}.telemetry`);
-            const handler = (data) => this.handleTelemetryReceived(data);
-            channel.listen('.TelemetryReceived', handler);
-            channel.listen('TelemetryReceived', handler);
+            this.telemetryChannelName = channelName;
+            this.telemetryHandler = (data) => this.handleTelemetryReceived(data);
+            const channel = window.Echo.private(channelName);
+            // Prefer the dot-prefixed broadcast name (Laravel broadcasts with broadcastAs()).
+            channel.listen('.TelemetryReceived', this.telemetryHandler);
+
+            if (typeof channel.subscribed === 'function') {
+                channel.subscribed(() => {
+                    if (this.destroyed) {
+                        return;
+                    }
+                    this.realtimeConnected = true;
+                });
+            }
+
+            if (typeof channel.error === 'function') {
+                channel.error((error) => {
+                    this.realtimeConnected = false;
+                    console.debug('Telemetry Echo subscription error:', error);
+                    if (this.pollingFallbackEnabled) {
+                        this.startTelemetryPolling();
+                    }
+                });
+            }
+        },
+        leaveTelemetryChannel() {
+            if (this.telemetryChannelName && typeof window.Echo !== 'undefined') {
+                window.Echo.leave(this.telemetryChannelName);
+            }
+
+            this.telemetryChannelName = null;
+            this.telemetryHandler = null;
+            this.subscribed = false;
+            this.realtimeConnected = false;
+        },
+        shouldUseTelemetryPolling() {
+            if (this.pollingFallbackEnabled) {
+                return true;
+            }
+
+            return Boolean(this.pollingUrl);
         },
         startTelemetryPolling() {
-            if (this.pollTimer) {
+            if (this.destroyed || this.pollTimer) {
                 return;
             }
 
@@ -138,12 +337,24 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             }
         },
         scheduleNextTelemetryPoll(delay = this.pollIntervalMs) {
+            if (this.destroyed) {
+                return;
+            }
+
             this.stopTelemetryPolling();
             this.pollTimer = window.setTimeout(() => this.pollTelemetryReadings(), delay);
         },
-        async pollTelemetryReadings() {
+        async pollTelemetryReadings(options = {}) {
+            const reschedule = options.reschedule ?? true;
+
+            if (this.destroyed) {
+                return;
+            }
+
             if (this.polling) {
-                this.scheduleNextTelemetryPoll();
+                if (reschedule && this.shouldUseTelemetryPolling()) {
+                    this.scheduleNextTelemetryPoll();
+                }
                 return;
             }
 
@@ -158,6 +369,13 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 url.searchParams.set('after_id', String(this.lastReadingId || 0));
                 url.searchParams.set('limit', String(this.pollBatchLimit));
 
+                console.debug('Polling telemetry...', {
+                    deviceId: requestedDeviceId,
+                    afterId: this.lastReadingId || 0,
+                    limit: this.pollBatchLimit,
+                    url: url.toString(),
+                });
+
                 const response = await fetch(url, {
                     headers: { Accept: 'application/json' },
                     credentials: 'same-origin',
@@ -169,6 +387,15 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 }
 
                 const json = await response.json();
+                if (this.destroyed) {
+                    return;
+                }
+                console.debug('Telemetry poll HTTP 200', {
+                    deviceId: json?.device_id ?? requestedDeviceId,
+                    latestId: json?.latest_id ?? null,
+                    readings: Array.isArray(json?.readings) ? json.readings.length : 0,
+                });
+
                 if (requestedDeviceId && this.normalizeDeviceId(this.deviceId) !== requestedDeviceId) {
                     return;
                 }
@@ -178,20 +405,25 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 const readings = Array.isArray(json.readings) ? json.readings : [];
 
                 if (readings.length > 0) {
+                    console.debug('Received telemetry readings; updating dashboard...', {
+                        newestId: json.latest_id ?? readings[readings.length - 1]?.id ?? null,
+                    });
                     this.handleTelemetryReadings(readings, json.latest_kpis || null);
                 }
             } catch (error) {
                 console.debug('Telemetry chart polling error:', error);
             } finally {
                 this.polling = false;
-                this.scheduleNextTelemetryPoll();
+                if (!this.destroyed && reschedule && this.shouldUseTelemetryPolling()) {
+                    this.scheduleNextTelemetryPoll();
+                }
             }
         },
         normalizeDeviceId(deviceId) {
             const parsed = Number.parseInt(deviceId || 0, 10);
             return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
         },
-        applyResponseDeviceId(deviceId) {
+        applyResponseDeviceId(deviceId, subscribe = true) {
             const nextDeviceId = this.normalizeDeviceId(deviceId);
             if (!nextDeviceId) {
                 return;
@@ -200,15 +432,17 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             const currentDeviceId = this.normalizeDeviceId(this.deviceId);
             if (!currentDeviceId) {
                 this.deviceId = nextDeviceId;
-                this.listenToPusher();
+                if (subscribe) {
+                    this.listenToPusher();
+                }
                 return;
             }
 
             if (currentDeviceId !== nextDeviceId) {
-                this.switchTelemetryDevice(nextDeviceId, false);
+                this.switchTelemetryDevice(nextDeviceId, false, subscribe);
             }
         },
-        switchTelemetryDevice(deviceId, restartPoll = true) {
+        switchTelemetryDevice(deviceId, restartPoll = true, subscribe = true) {
             const nextDeviceId = this.normalizeDeviceId(deviceId);
             const currentDeviceId = this.normalizeDeviceId(this.deviceId);
 
@@ -216,15 +450,32 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return;
             }
 
+            this.leaveTelemetryChannel();
             this.deviceId = nextDeviceId;
-            this.subscribed = false;
             this.hasChartTelemetry = false;
             this.resetSeries();
             this.resetKpis();
             this.refreshMountedCharts(false);
-            this.listenToPusher();
+            if (subscribe) {
+                this.listenToPusher();
+            }
 
             if (restartPoll) {
+                this.fetchTelemetryHistoryPayload({
+                    telemetryChartReadings: [],
+                    telemetryKpis: null,
+                    hasChartTelemetry: false,
+                }).then((payload) => {
+                    if (this.normalizeDeviceId(this.deviceId) !== nextDeviceId) {
+                        return;
+                    }
+
+                    this.seedSeries(payload);
+                    this.refreshMountedCharts(false);
+                });
+            }
+
+            if (restartPoll && this.shouldUseTelemetryPolling()) {
                 this.scheduleNextTelemetryPoll(0);
             }
         },
@@ -236,34 +487,201 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.handleTelemetryReadings([data]);
         },
         handleTelemetryReadings(readings, latestKpis = null) {
+            if (this.destroyed) {
+                return;
+            }
+
             const normalized = readings
                 .map((reading) => this.normalizeReading(reading))
                 .filter((reading) => reading !== null && this.readingBelongsToCurrentDevice(reading))
-                .sort((a, b) => a.id - b.id);
+                .sort((a, b) => (a.x - b.x) || (a.id - b.id));
 
             if (normalized.length === 0) {
                 return;
             }
 
+            console.debug('Applying telemetry readings to dashboard state...', {
+                count: normalized.length,
+                firstId: normalized[0]?.id ?? null,
+                lastId: normalized[normalized.length - 1]?.id ?? null,
+            });
+
             let changed = false;
-            let latestAcceptedReading = null;
+            let latestChartableReading = null;
+            let trimmedOccurred = false;
+            let orderingRefreshRequired = false;
+            const appendBatch = [];
+            let nextKpis = null;
+
+            if (this.hasMeaningfulKpiPayload(latestKpis)) {
+                nextKpis = latestKpis;
+            }
 
             normalized.forEach((reading) => {
-                if (reading.id > 0 && reading.id <= this.lastReadingId) {
+                if (this.hasSeenReading(reading)) {
                     return;
                 }
 
-                this.pushReading(reading);
+                const previousLastReadingTimestamp = this.lastReadingTimestamp;
+                this.rememberReading(reading);
                 this.lastReadingId = Math.max(this.lastReadingId, reading.id || 0);
-                latestAcceptedReading = reading;
+                this.lastReadingTimestamp = Math.max(this.lastReadingTimestamp, reading.x);
+
+                if (!this.hasMeaningfulTelemetryValues(reading)) {
+                    return;
+                }
+
+                const outOfOrder = this.hasBufferedChartData() && reading.x < previousLastReadingTimestamp;
+
+                this.pushReading(reading);
+                latestChartableReading = reading;
+                appendBatch.push(reading);
                 changed = true;
+
+                if (outOfOrder) {
+                    this.sortSeriesByTimestamp();
+                    orderingRefreshRequired = true;
+                }
+
+                // Trim arrays and detect if trimming removed items
+                if (this.trimSeries()) {
+                    trimmedOccurred = true;
+                }
             });
 
-            if (changed) {
+            if (changed || nextKpis) {
                 this.hasChartTelemetry = true;
-                this.updateKpis(latestKpis || this.buildKpisFromReading(latestAcceptedReading));
-                this.trimSeries();
-                this.refreshMountedCharts();
+                if (!nextKpis) {
+                    nextKpis = this.buildKpisFromReading(latestChartableReading);
+                }
+
+                if (nextKpis) {
+                    this.updateKpis(nextKpis);
+                }
+
+                if (!this.initialized) {
+                    this.logChartDebug('bootstrap-refresh', {
+                        points: appendBatch.length,
+                    });
+                    this.refreshMountedCharts(false, 'bootstrap');
+                } else if (trimmedOccurred || orderingRefreshRequired) {
+                    this.logChartDebug('updateSeries-fallback', {
+                        reason: trimmedOccurred ? 'trim' : 'ordering',
+                        points: appendBatch.length,
+                    });
+                    this.refreshMountedCharts(false, trimmedOccurred ? 'trim' : 'ordering');
+                } else if (appendBatch.length > 0 && !this.appendToChartsForBatch(appendBatch)) {
+                    this.logChartDebug('appendData-fallback', {
+                        points: appendBatch.length,
+                    });
+                    this.refreshMountedCharts(false, 'append-fallback');
+                }
+            }
+        },
+
+        appendToChartsForBatch(readings) {
+            if (!Array.isArray(readings) || readings.length === 0) {
+                return true;
+            }
+
+            const overviewSeries = [
+                { data: [] },
+                { data: [] },
+                { data: [] },
+            ];
+            const analyticsSeries = [
+                { data: [] },
+                { data: [] },
+                { data: [] },
+            ];
+            const historySeries = [
+                { data: [] },
+                { data: [] },
+                { data: [] },
+                { data: [] },
+                { data: [] },
+                { data: [] },
+                { data: [] },
+            ];
+            const safePoint = (reading, value) => ({ x: reading.x, y: value === null ? null : value, id: reading.id || 0 });
+
+            readings.forEach((reading) => {
+                overviewSeries[0].data.push(safePoint(reading, reading.ph));
+                overviewSeries[1].data.push(safePoint(reading, reading.water_temperature));
+                overviewSeries[2].data.push(safePoint(reading, reading.ec));
+
+                analyticsSeries[0].data.push(safePoint(reading, reading.air_temperature));
+                analyticsSeries[1].data.push(safePoint(reading, reading.humidity));
+                analyticsSeries[2].data.push(safePoint(reading, reading.water_flow));
+
+                historySeries[0].data.push(safePoint(reading, reading.air_temperature));
+                historySeries[1].data.push(safePoint(reading, reading.humidity));
+                historySeries[2].data.push(safePoint(reading, reading.water_temperature));
+                historySeries[3].data.push(safePoint(reading, reading.ph));
+                historySeries[4].data.push(safePoint(reading, reading.ec));
+                historySeries[5].data.push(safePoint(reading, reading.water_flow));
+                historySeries[6].data.push(safePoint(reading, reading.water_level));
+            });
+
+            let appended = false;
+            let failed = false;
+
+            if (this.charts.telemetryOverview && typeof this.charts.telemetryOverview.appendData === 'function') {
+                try {
+                    this.logChartDebug('appendData', {
+                        chart: 'telemetryOverview',
+                        points: overviewSeries[0].data.length,
+                    });
+                    this.charts.telemetryOverview.appendData(overviewSeries);
+                    appended = true;
+                } catch (e) {
+                    failed = true;
+                    console.debug('telemetryOverview appendData failed', e);
+                }
+            }
+
+            if (this.charts.analytics && typeof this.charts.analytics.appendData === 'function') {
+                try {
+                    this.logChartDebug('appendData', {
+                        chart: 'analytics',
+                        points: analyticsSeries[0].data.length,
+                    });
+                    this.charts.analytics.appendData(analyticsSeries);
+                    appended = true;
+                } catch (e) {
+                    failed = true;
+                    console.debug('analytics appendData failed', e);
+                }
+            }
+
+            if (this.charts.history && typeof this.charts.history.appendData === 'function') {
+                try {
+                    this.logChartDebug('appendData', {
+                        chart: 'history',
+                        points: historySeries[0].data.length,
+                    });
+                    this.charts.history.appendData(historySeries);
+                    appended = true;
+                } catch (e) {
+                    failed = true;
+                    console.debug('history appendData failed', e);
+                }
+            }
+
+            return appended && !failed;
+        },
+        hasSeenReading(reading) {
+            return reading.id > 0 && this.seenReadingIds.has(reading.id);
+        },
+        rememberReading(reading) {
+            if (reading.id <= 0) {
+                return;
+            }
+
+            this.seenReadingIds.add(reading.id);
+            if (this.seenReadingIds.size > this.maxPoints * 4) {
+                const oldest = this.seenReadingIds.values().next().value;
+                this.seenReadingIds.delete(oldest);
             }
         },
         readingBelongsToCurrentDevice(reading) {
@@ -294,6 +712,31 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 water_level: this.toNullableNumber(reading.water_level),
             };
         },
+        hasMeaningfulTelemetryValues(reading) {
+            if (!reading) {
+                return false;
+            }
+
+            return [
+                reading.air_temperature,
+                reading.humidity,
+                reading.water_temperature,
+                reading.ph,
+                reading.ec,
+                reading.water_level,
+            ].some((value) => value !== null && value !== undefined);
+        },
+        hasMeaningfulKpiPayload(kpis) {
+            if (!kpis || typeof kpis !== 'object') {
+                return false;
+            }
+
+            return this.kpiKeys.filter((key) => key !== 'water_flow').some((key) => {
+                const entry = kpis[key];
+                const value = entry?.value;
+                return value !== undefined && value !== null && value !== '--';
+            });
+        },
         timestampToMillis(timestamp) {
             if (!timestamp) {
                 return Number.NaN;
@@ -311,7 +754,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return Number.isFinite(parsed) ? parsed : null;
         },
         point(reading, key) {
-            return { x: reading.x, y: reading[key] };
+            return { x: reading.x, y: reading[key], id: reading.id || 0 };
         },
         pushReading(reading) {
             this.overviewData.ph.push(this.point(reading, 'ph'));
@@ -331,20 +774,57 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.historyData.waterLevel.push(this.point(reading, 'water_level'));
         },
         trimSeries() {
-            Object.values(this.overviewData).forEach((series) => this.trimSeriesArray(series));
-            Object.values(this.analyticsData).forEach((series) => this.trimSeriesArray(series));
-            Object.values(this.historyData).forEach((series) => this.trimSeriesArray(series));
+            let trimmed = false;
+
+            Object.values(this.overviewData).forEach((series) => {
+                trimmed = this.trimSeriesArray(series) || trimmed;
+            });
+            Object.values(this.analyticsData).forEach((series) => {
+                trimmed = this.trimSeriesArray(series) || trimmed;
+            });
+            Object.values(this.historyData).forEach((series) => {
+                trimmed = this.trimSeriesArray(series) || trimmed;
+            });
+
+            if (trimmed) {
+                this.logChartDebug('trim', {
+                    visiblePoints: this.maxPoints,
+                    bufferPoints: this.chartBufferLimit(),
+                });
+            }
+
+            return trimmed;
+        },
+        sortSeriesByTimestamp() {
+            this.logChartDebug('reorder', {});
+            [
+                ...Object.values(this.overviewData),
+                ...Object.values(this.analyticsData),
+                ...Object.values(this.historyData),
+            ].forEach((series) => {
+                series.sort((a, b) => (a.x - b.x) || ((a.id || 0) - (b.id || 0)));
+            });
+        },
+        chartBufferLimit() {
+            return Math.max(this.maxPoints + 1, Number.isFinite(this.bufferPoints) ? this.bufferPoints : this.maxPoints);
         },
         trimSeriesArray(series) {
+            if (series.length <= this.chartBufferLimit()) {
+                return false;
+            }
+
             while (series.length > this.maxPoints) {
                 series.shift();
             }
+            return true;
         },
         resetSeries() {
             Object.keys(this.overviewData).forEach((key) => { this.overviewData[key] = []; });
             Object.keys(this.analyticsData).forEach((key) => { this.analyticsData[key] = []; });
             Object.keys(this.historyData).forEach((key) => { this.historyData[key] = []; });
             this.lastReadingId = 0;
+            this.lastReadingTimestamp = Number.NEGATIVE_INFINITY;
+            this.seenReadingIds.clear();
         },
         resetKpis() {
             this.kpis = normalizeKpiState({});
@@ -367,14 +847,29 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     return;
                 }
 
-                this.pushReading(normalized);
+                this.rememberReading(normalized);
                 this.lastReadingId = Math.max(this.lastReadingId, normalized.id || 0);
+                this.lastReadingTimestamp = Math.max(this.lastReadingTimestamp, normalized.x);
+
+                if (!this.hasMeaningfulTelemetryValues(normalized)) {
+                    return;
+                }
+
+                this.pushReading(normalized);
                 latestSeededReading = normalized;
             });
 
-            this.updateKpis(payload.telemetryKpis || payload.latest_kpis || this.buildKpisFromReading(latestSeededReading), false);
+            const nextKpis = this.hasMeaningfulKpiPayload(payload.telemetryKpis)
+                ? payload.telemetryKpis
+                : (this.hasMeaningfulKpiPayload(payload.latest_kpis)
+                    ? payload.latest_kpis
+                    : this.buildKpisFromReading(latestSeededReading));
+
+            if (nextKpis) {
+                this.updateKpis(nextKpis, false);
+            }
             this.trimSeries();
-            this.hasChartTelemetry = Boolean(payload.hasChartTelemetry) || this.hasBufferedChartData();
+            this.hasChartTelemetry = this.hasBufferedChartData();
         },
         hasBufferedChartData() {
             return [
@@ -397,11 +892,16 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 }
 
                 const previous = nextKpis[key] || emptyKpi();
+                const incoming = kpis[key] || {};
+                const hasIncomingValue = incoming.value !== undefined && incoming.value !== null && incoming.value !== '--';
+                const hasIncomingStatus = incoming.status !== undefined && incoming.status !== null && incoming.status !== 'Waiting';
+                const hasIncomingStatusType = incoming.statusType !== undefined && incoming.statusType !== null && incoming.statusType !== 'standby';
+                const hasIncomingTrend = incoming.trend !== undefined && incoming.trend !== null && incoming.trend !== 'Waiting for sensor data...';
                 const next = {
-                    value: kpis[key]?.value ?? previous.value ?? '--',
-                    status: kpis[key]?.status ?? previous.status ?? 'Waiting',
-                    statusType: kpis[key]?.statusType ?? previous.statusType ?? 'standby',
-                    trend: kpis[key]?.trend ?? previous.trend ?? 'Waiting for sensor data...',
+                    value: hasIncomingValue ? incoming.value : (previous.value ?? '--'),
+                    status: hasIncomingStatus ? incoming.status : (previous.status ?? 'Waiting'),
+                    statusType: hasIncomingStatusType ? incoming.statusType : (previous.statusType ?? 'standby'),
+                    trend: hasIncomingTrend ? incoming.trend : (previous.trend ?? 'Waiting for sensor data...'),
                 };
 
                 if (
@@ -426,26 +926,85 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return null;
             }
 
-            return {
-                air_temperature: this.valueOnlyKpi(reading.air_temperature, 1, 'air_temperature'),
-                humidity: this.valueOnlyKpi(reading.humidity, 0, 'humidity'),
-                water_temperature: this.valueOnlyKpi(reading.water_temperature, 1, 'water_temperature'),
-                ph: this.valueOnlyKpi(reading.ph, 1, 'ph'),
-                ec: this.valueOnlyKpi(reading.ec, 1, 'ec'),
-                water_level: this.valueOnlyKpi(this.normalizeWaterLevel(reading.water_level), 0, 'water_level'),
-                water_flow: this.valueOnlyKpi(reading.water_flow, 1, 'water_flow'),
+            const trend = this.trendTextFromTimestamp(reading.x);
+            const result = {};
+
+            const assignIfPresent = (key, value, decimals, allowHeartbeatValue = false) => {
+                const parsed = Number(value);
+                if (value === null || value === undefined || !Number.isFinite(parsed)) {
+                    return;
+                }
+
+                if (!allowHeartbeatValue && key === 'water_flow' && !this.hasMeaningfulTelemetryValues(reading)) {
+                    return;
+                }
+
+                result[key] = this.valueOnlyKpi(parsed, decimals, key, trend);
             };
+
+            assignIfPresent('air_temperature', reading.air_temperature, 1);
+            assignIfPresent('humidity', reading.humidity, 0);
+            assignIfPresent('water_temperature', reading.water_temperature, 1);
+            assignIfPresent('ph', reading.ph, 1);
+            assignIfPresent('ec', reading.ec, 1);
+            assignIfPresent('water_level', this.normalizeWaterLevel(reading.water_level), 0);
+            assignIfPresent('water_flow', reading.water_flow, 1);
+
+            return result;
         },
-        valueOnlyKpi(value, decimals, key) {
+        valueOnlyKpi(value, decimals, key, trendText = null) {
             const previous = this.kpis[key] || emptyKpi();
             const parsed = Number(value);
+            const hasValue = value !== null && value !== undefined && Number.isFinite(parsed);
+            const status = this.resolveKpiStatus(key, hasValue ? parsed : null);
 
             return {
-                value: value === null || value === undefined || !Number.isFinite(parsed) ? '--' : parsed.toFixed(decimals),
-                status: previous.status,
-                statusType: previous.statusType,
-                trend: previous.trend,
+                value: hasValue ? parsed.toFixed(decimals) : '--',
+                status: status.status ?? previous.status,
+                statusType: status.statusType ?? previous.statusType,
+                trend: trendText ?? previous.trend,
             };
+        },
+        resolveKpiStatus(key, value) {
+            const thresholdConfig = this.thresholds[key] || {};
+            const low = thresholdConfig.low;
+            const high = thresholdConfig.high;
+
+            if (value === null || !Number.isFinite(value) || !Number.isFinite(low) || !Number.isFinite(high)) {
+                return { status: 'Waiting', statusType: 'standby' };
+            }
+
+            if (value < low) {
+                return { status: thresholdConfig.lowLabel || 'LOW', statusType: 'warning' };
+            }
+
+            if (value > high) {
+                return { status: thresholdConfig.highLabel || 'HIGH', statusType: 'warning' };
+            }
+
+            return { status: 'NORMAL', statusType: 'online' };
+        },
+        trendTextFromTimestamp(timestamp) {
+            if (!Number.isFinite(timestamp)) {
+                return null;
+            }
+
+            const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+            if (elapsedSeconds < 5) {
+                return 'Last Updated: just now';
+            }
+
+            if (elapsedSeconds < 60) {
+                return `Last Updated: ${elapsedSeconds}s ago`;
+            }
+
+            const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+            if (elapsedMinutes < 60) {
+                return `Last Updated: ${elapsedMinutes}m ago`;
+            }
+
+            const elapsedHours = Math.floor(elapsedMinutes / 60);
+            return `Last Updated: ${elapsedHours}h ago`;
         },
         normalizeWaterLevel(value) {
             if (value === null || value === undefined) {
@@ -523,6 +1082,10 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return 'bg-slate-400';
         },
         updateApexCharts(payload) {
+            if (this.destroyed) {
+                return;
+            }
+
             if (!this.initialized) {
                 this.$nextTick(() => this.renderOrUpdateCharts(payload || this.initialChartPayload()));
                 return;
@@ -530,12 +1093,16 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
 
             if (payload?.telemetryChartReadings) {
                 this.seedSeries(payload);
-                this.refreshMountedCharts(false);
+                this.refreshMountedCharts(false, 'livewire-reconcile');
             } else if (payload?.telemetryKpis) {
                 this.updateKpis(payload.telemetryKpis, false);
             }
         },
         renderOrUpdateCharts(payload) {
+            if (this.destroyed) {
+                return;
+            }
+
             if (typeof ApexCharts === 'undefined') {
                 return;
             }
@@ -550,36 +1117,88 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.refreshMountedCharts(false);
         },
         renderCharts() {
+            if (this.destroyed) {
+                return;
+            }
+
             const chartEl = document.querySelector('#telemetryOverviewChart');
             if (chartEl && !this.charts.telemetryOverview) {
+                this.logChartDebug('render', { chart: 'telemetryOverview' });
                 this.charts.telemetryOverview = new ApexCharts(chartEl, this.telemetryOverviewOptions());
                 this.charts.telemetryOverview.render();
             }
 
             const analyticsEl = document.querySelector('#analyticsMultiChart');
             if (analyticsEl && !this.charts.analytics) {
+                this.logChartDebug('render', { chart: 'analytics' });
                 this.charts.analytics = new ApexCharts(analyticsEl, this.analyticsOptions());
                 this.charts.analytics.render();
             }
 
             const historyEl = document.querySelector('#telemetryHistoryChart');
             if (historyEl && !this.charts.history) {
+                this.logChartDebug('render', { chart: 'history' });
                 this.charts.history = new ApexCharts(historyEl, this.historyOptions());
                 this.charts.history.render();
             }
         },
-        refreshMountedCharts(animate = true) {
+        refreshMountedCharts(animate = true, reason = 'manual') {
+            if (this.destroyed) {
+                return;
+            }
+
             if (this.charts.telemetryOverview) {
+                this.logChartDebug('updateSeries', {
+                    chart: 'telemetryOverview',
+                    animate,
+                    reason,
+                });
                 this.charts.telemetryOverview.updateSeries(this.telemetryOverviewSeries(), animate);
             }
 
             if (this.charts.analytics) {
+                this.logChartDebug('updateSeries', {
+                    chart: 'analytics',
+                    animate,
+                    reason,
+                });
                 this.charts.analytics.updateSeries(this.analyticsSeries(), animate);
             }
 
             if (this.charts.history) {
+                this.logChartDebug('updateSeries', {
+                    chart: 'history',
+                    animate,
+                    reason,
+                });
                 this.charts.history.updateSeries(this.historySeries(), animate);
             }
+        },
+        destroyCharts() {
+            Object.values(this.charts).forEach((chart) => {
+                if (chart && typeof chart.destroy === 'function') {
+                    try {
+                        this.logChartDebug('destroy', {});
+                        chart.destroy();
+                    } catch (error) {
+                        console.debug('ApexCharts destroy error:', error);
+                    }
+                }
+            });
+
+            this.charts = {
+                telemetryOverview: null,
+                analytics: null,
+                history: null,
+            };
+        },
+        destroy() {
+            this.destroyed = true;
+            this.stopTelemetryPolling();
+            this.leaveTelemetryChannel();
+            this.destroyCharts();
+            Object.values(this.kpiPulseTimers).forEach((timer) => window.clearTimeout(timer));
+            this.kpiPulseTimers = {};
         },
         baseChartOptions(height, extra = {}) {
             return {
@@ -592,7 +1211,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                         easing: 'linear',
                         speed: 250,
                         animateGradually: { enabled: false },
-                        dynamicAnimation: { enabled: true, speed: 350 },
+                        dynamicAnimation: { enabled: true, speed: 250 },
                     },
                     zoom: { enabled: false },
                 },
@@ -719,4 +1338,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateDashboardClock, 1000);
     setInterval(updateEsp32Status, 5000);
 });
-

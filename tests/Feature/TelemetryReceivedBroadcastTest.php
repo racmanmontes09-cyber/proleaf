@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Telemetry;
 use App\Services\TelemetryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -17,9 +18,25 @@ class TelemetryReceivedBroadcastTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_broadcasting_defaults_to_pusher_connection(): void
+    protected function setUp(): void
     {
-        $this->assertSame('pusher', config('broadcasting.default'));
+        parent::setUp();
+
+        config([
+            'broadcasting.default' => 'reverb',
+            'broadcasting.connections.reverb.key' => 'test-key',
+            'broadcasting.connections.reverb.secret' => 'test-secret',
+            'broadcasting.connections.reverb.app_id' => 'test-app',
+        ]);
+
+        Broadcast::forgetDrivers();
+        require base_path('routes/channels.php');
+    }
+
+    public function test_broadcasting_supports_reverb_connection(): void
+    {
+        $this->assertArrayHasKey('reverb', config('broadcasting.connections'));
+        $this->assertSame('reverb', config('broadcasting.connections.reverb.driver'));
     }
 
     public function test_telemetry_received_event_broadcasts_on_private_device_channel(): void
@@ -123,6 +140,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $expectedKeys = [
             'id',
             'device_id',
+            'timestamp',
             'air_temperature',
             'humidity',
             'water_temperature',
@@ -131,6 +149,7 @@ class TelemetryReceivedBroadcastTest extends TestCase
             'water_flow',
             'water_level',
             'measured_at',
+            'received_at',
         ];
 
         ksort($payload);
@@ -148,9 +167,43 @@ class TelemetryReceivedBroadcastTest extends TestCase
         $this->assertEquals(1.5, $payload['ec']);
         $this->assertEquals(2.1, $payload['water_flow']);
         $this->assertEquals(85.0, $payload['water_level']);
+        $this->assertSame($payload['measured_at'], $payload['timestamp']);
         $this->assertArrayNotHasKey('sequence_number', $payload);
         $this->assertArrayNotHasKey('signal_strength', $payload);
         $this->assertArrayNotHasKey('battery_voltage', $payload);
+    }
+
+    public function test_telemetry_service_dispatches_telemetry_received_when_realtime_broadcast_requested(): void
+    {
+        Event::fake([TelemetryReceived::class]);
+
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-MQTT-01',
+            'name' => 'ESP32 MQTT Device',
+        ]);
+
+        $service = app(TelemetryService::class);
+        $result = $service->storeTelemetry($device, [
+            'air_temperature' => 25.0,
+            'humidity' => 65.0,
+            'water_temperature' => 22.0,
+            'ph' => 6.0,
+            'ec' => 1.6,
+            'water_flow' => 2.0,
+            'water_level' => 90.0,
+            'measured_at' => '2026-07-25 15:00:00',
+        ], broadcastRealtime: true);
+
+        $this->assertTrue($result['created']);
+
+        Event::assertDispatched(TelemetryReceived::class, function (TelemetryReceived $event) use ($device, $result) {
+            $payload = $event->broadcastWith();
+
+            return $event->deviceId === $device->id
+                && $payload['id'] === $result['telemetry']->id
+                && $payload['device_id'] === $device->id
+                && $payload['timestamp'] === $payload['measured_at'];
+        });
     }
 
     public function test_telemetry_service_stores_data_without_dispatching_telemetry_received_event(): void
