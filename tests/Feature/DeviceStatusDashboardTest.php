@@ -55,13 +55,13 @@ class DeviceStatusDashboardTest extends TestCase
             'measured_at' => now(),
         ]);
 
-        $targetDevice = new Device([
+        $targetDevice = Device::create([
             'device_id' => 'esp32-001',
             'name' => 'Greenhouse ESP32',
             'last_seen_at' => now()->subHour(),
         ]);
-        $targetDevice->id = 358;
-        $targetDevice->save();
+
+        config(['leaf.dashboard.device_db_id' => $targetDevice->id]);
 
         $targetDevice->telemetries()->create([
             'air_temperature' => 30.5,
@@ -75,7 +75,7 @@ class DeviceStatusDashboardTest extends TestCase
         ]);
 
         Livewire::test(DeviceStatus::class)
-            ->assertSet('device.id', 358)
+            ->assertSet('device.id', $targetDevice->id)
             ->assertSet('temperatureValue', '30.5')
             ->assertSet('humidityValue', '72')
             ->assertSet('waterTemperatureValue', '26.4')
@@ -88,13 +88,11 @@ class DeviceStatusDashboardTest extends TestCase
 
     public function test_dashboard_uses_real_telemetry_for_initial_display_even_when_fake_rows_exist(): void
     {
-        $targetDevice = new Device([
+        $targetDevice = Device::create([
             'device_id' => 'esp32-001',
             'name' => 'Greenhouse ESP32',
             'last_seen_at' => now(),
         ]);
-        $targetDevice->id = 358;
-        $targetDevice->save();
 
         $targetDevice->telemetries()->create([
             'air_temperature' => 29.5,
@@ -121,7 +119,7 @@ class DeviceStatusDashboardTest extends TestCase
         ]);
 
         Livewire::test(DeviceStatus::class)
-            ->assertSet('device.id', 358)
+            ->assertSet('device.id', $targetDevice->id)
             ->assertSet('temperatureValue', '30.5')
             ->assertSet('humidityValue', '72')
             ->assertSet('waterTemperatureValue', '26.4')

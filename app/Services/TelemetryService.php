@@ -11,7 +11,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class TelemetryService
 {
@@ -48,6 +47,46 @@ class TelemetryService
         protected AlertService $alertService
     ) {}
 
+    public function storeTelemetryFast(
+        Device $device,
+        array $payload,
+    ): array {
+        $normalizedPayload = $this->prepareTelemetryPayload($device, $payload);
+
+        try {
+            DB::table('telemetries')->insert($normalizedPayload);
+        } catch (QueryException $e) {
+            if ($this->isDuplicateEntryException($e)) {
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'message' => 'Telemetry already stored.',
+                    'telemetry' => null,
+                ];
+            }
+
+            throw $e;
+        }
+
+        $id = (int) DB::getPdo()->lastInsertId();
+
+        $telemetry = new Telemetry($normalizedPayload);
+        $telemetry->id = $id;
+        $telemetry->device_id = $device->id;
+        $telemetry->exists = true;
+
+        TelemetryReceived::dispatch($telemetry);
+
+        $this->alertService->evaluateTelemetry($device, $telemetry);
+
+        return [
+            'success' => true,
+            'created' => true,
+            'message' => 'Telemetry stored successfully.',
+            'telemetry' => $telemetry,
+        ];
+    }
+
     /**
      * Store telemetry payload for a device with duplicate prevention handling.
      */
@@ -62,12 +101,12 @@ class TelemetryService
         try {
             $telemetry = $this->persistTelemetry($device, $payload, $skipSideEffects);
 
-            if (! $skipSideEffects && $telemetry !== null) {
-                $this->alertService->evaluateTelemetry($device, $telemetry);
-            }
-
             if ($broadcastRealtime && ! $skipSideEffects && $telemetry !== null) {
                 TelemetryReceived::dispatch($telemetry);
+            }
+
+            if (! $skipSideEffects && $telemetry !== null) {
+                $this->alertService->evaluateTelemetry($device, $telemetry);
             }
 
             return [
@@ -95,38 +134,51 @@ class TelemetryService
      */
     public function validatedTelemetryPayload(array $payload): array
     {
-        $validator = Validator::make($payload, [
-            'air_temperature' => ['nullable', 'numeric', 'between:-50,100'],
-            'humidity' => ['nullable', 'numeric', 'between:0,100'],
-            'water_temperature' => ['nullable', 'numeric', 'between:-10,80'],
-            'ph' => ['nullable', 'numeric', 'between:0,14'],
-            'ec' => ['nullable', 'numeric', 'between:0,20'],
-            'water_flow' => ['nullable', 'numeric', 'between:0,500'],
-            'water_level' => ['nullable', 'numeric', 'between:0,100'],
-            'measured_at' => ['nullable', 'date', 'before_or_equal:now'],
-            'sequence_number' => ['nullable', 'integer', 'min:0'],
-            'firmware_version' => ['nullable', 'string', 'max:50'],
-            'signal_strength' => ['nullable', 'integer', 'between:-150,0'],
-            'battery_voltage' => ['nullable', 'numeric', 'between:0,30'],
-            'payload_version' => ['nullable', 'integer', 'min:1'],
-        ]);
+        $validated = [];
 
-        $validator->after(function ($validator) use ($payload): void {
-            foreach (self::TELEMETRY_VALUE_FIELDS as $field) {
-                if (array_key_exists($field, $payload) && $payload[$field] !== null && $payload[$field] !== '') {
-                    return;
-                }
+        foreach (self::TELEMETRY_STORAGE_FIELDS as $field) {
+            if (! array_key_exists($field, $payload)) {
+                continue;
             }
 
-            $validator->errors()->add('telemetry', 'At least one telemetry value is required.');
-        });
+            $value = $payload[$field];
 
-        $validated = $validator->validate();
+            if ($value === null || $value === '') {
+                continue;
+            }
 
-        return array_filter(
-            array_intersect_key($validated, array_flip(self::TELEMETRY_STORAGE_FIELDS)),
-            fn ($value) => $value !== null
-        );
+            if (in_array($field, ['air_temperature', 'humidity', 'water_temperature', 'ph', 'ec', 'water_flow', 'water_level', 'battery_voltage'], true)) {
+                $num = is_numeric($value) ? (float) $value : null;
+                if ($num === null) {
+                    continue;
+                }
+                $validated[$field] = $num;
+            } elseif (in_array($field, ['sequence_number', 'signal_strength', 'payload_version'], true)) {
+                $int = filter_var($value, FILTER_VALIDATE_INT);
+                if ($int === false) {
+                    continue;
+                }
+                $validated[$field] = $int;
+            } else {
+                $validated[$field] = (string) $value;
+            }
+        }
+
+        $hasValue = false;
+        foreach (self::TELEMETRY_VALUE_FIELDS as $field) {
+            if (array_key_exists($field, $validated) && $validated[$field] !== null) {
+                $hasValue = true;
+                break;
+            }
+        }
+
+        if (! $hasValue) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'telemetry' => ['At least one telemetry value is required.'],
+            ]);
+        }
+
+        return $validated;
     }
 
     private function persistTelemetry(Device $device, array $payload, bool $skipSideEffects = false): ?Telemetry
@@ -139,7 +191,8 @@ class TelemetryService
             return null;
         }
 
-        $id = DB::table('telemetries')->insertGetId($normalizedPayload);
+        DB::table('telemetries')->insert($normalizedPayload);
+        $id = (int) DB::getPdo()->lastInsertId();
 
         $telemetry = new Telemetry($normalizedPayload);
         $telemetry->id = $id;
@@ -252,7 +305,7 @@ class TelemetryService
     }
 
     /**
-     * Get bounded historical telemetry for charts (last 24 hours, capped to limit, index-ordered).
+     * Get a bounded, evenly distributed historical sample for charts.
      */
     public function getTelemetryHistory(?Device $device, int $limit = 100): Collection
     {
@@ -260,28 +313,40 @@ class TelemetryService
             return collect();
         }
 
-        return $device->telemetries()
-            ->select([
-                'id',
-                'device_id',
-                'air_temperature',
-                'humidity',
-                'water_temperature',
-                'ph',
-                'ec',
-                'water_flow',
-                'water_level',
-                'measured_at',
-                'received_at',
-                'updated_at',
-                'created_at',
-            ])
-            ->last24Hours()
+            return $device->telemetries()
+                ->select([
+                    'id',
+                    'device_id',
+                    'air_temperature',
+                    'humidity',
+                    'water_temperature',
+                    'ph',
+                    'ec',
+                    'water_flow',
+                    'water_level',
+                    'measured_at',
+                    'received_at',
+                    'updated_at',
+                    'created_at',
+                ])
+                ->last30Days()
             ->latestReading()
             ->limit($limit)
             ->get()
             ->reverse()
             ->values();
+    }
+
+    public function getTelemetryHistoryBetween(Device $device, ?Carbon $from, ?Carbon $to, int $limit = 100): Collection
+    {
+        $query = $device->telemetries()
+            ->select($this->telemetryChartColumns())
+            ->when($from, fn ($query) => $query->where('measured_at', '>=', $from))
+            ->when($to, fn ($query) => $query->where('measured_at', '<=', $to))
+            ->latestReading()
+            ->limit($limit);
+
+        return $query->get()->reverse()->values();
     }
 
     /**
@@ -434,15 +499,12 @@ class TelemetryService
                 $trendText,
                 $waterLevel['display'] ?? null,
             ),
-            'water_flow' => $this->serializeTelemetryKpi(
-                $telemetry->water_flow !== null ? (float) $telemetry->water_flow : null,
-                1,
-                $thresholds['waterFlowLow'],
-                $thresholds['waterFlowHigh'],
-                'LOW FLOW',
-                'HIGH FLOW',
-                $trendText,
-            ),
+            'water_flow' => [
+                'value' => $telemetry->water_flow !== null ? number_format((float) $telemetry->water_flow, 1) : '--',
+                'status' => $telemetry->water_flow !== null ? 'ONLINE' : 'OFFLINE',
+                'statusType' => $telemetry->water_flow !== null ? 'online' : 'danger',
+                'trend' => $trendText,
+            ],
         ];
     }
 
@@ -579,12 +641,8 @@ class TelemetryService
             ? $this->thresholdService->resolveStatusType($waterLevel['value'], $thresholds['waterLevelLow'], $thresholds['waterLevelHigh'])
             : 'standby';
 
-        $waterFlowStatus = $telemetry->water_flow !== null
-            ? $this->thresholdService->resolveStatus((float) $telemetry->water_flow, $thresholds['waterFlowLow'], $thresholds['waterFlowHigh'], 'LOW FLOW', 'HIGH FLOW')
-            : 'Waiting';
-        $waterFlowType = $telemetry->water_flow !== null
-            ? $this->thresholdService->resolveStatusType((float) $telemetry->water_flow, $thresholds['waterFlowLow'], $thresholds['waterFlowHigh'])
-            : 'standby';
+        $waterFlowStatus = $telemetry->water_flow !== null ? 'ONLINE' : 'OFFLINE';
+        $waterFlowType = $telemetry->water_flow !== null ? 'online' : 'danger';
 
         return [
             [

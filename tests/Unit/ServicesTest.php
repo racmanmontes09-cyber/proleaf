@@ -62,6 +62,21 @@ class ServicesTest extends TestCase
         $this->assertEquals('Service Node 1', $cards[0]['name']);
     }
 
+    public function test_device_online_grace_matches_the_four_second_heartbeat(): void
+    {
+        $device = Device::create([
+            'device_id' => 'ESP-SVC-TIMING',
+            'name' => 'Timing Node',
+            'last_seen_at' => now()->subSeconds(4),
+        ]);
+
+        $this->assertTrue($device->is_online);
+
+        $device->last_seen_at = now()->subSeconds(11);
+
+        $this->assertFalse($device->is_online);
+    }
+
     public function test_telemetry_service_data_processing(): void
     {
         $service = app(TelemetryService::class);
@@ -70,8 +85,9 @@ class ServicesTest extends TestCase
         $t1 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 24.0, 'ph' => 6.2, 'measured_at' => now()->subMinutes(10)]);
         $t2 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 26.0, 'ph' => 6.5, 'measured_at' => now()]);
 
-        $devices = $service->getDevicesWithTelemetries();
+        $devices = $service->getDevicesWithTelemetries(1);
         $this->assertCount(1, $devices);
+        $this->assertTrue($devices->first()->is($device));
 
         $series = $service->buildTelemetryOverviewSeries(collect([$t1, $t2]));
         $this->assertEquals('Water pH', $series[0]['name']);
@@ -143,6 +159,8 @@ class ServicesTest extends TestCase
             'humidity' => 65.0,
             'measured_at' => now(),
         ]);
+
+        config(['leaf.dashboard.device_db_id' => $device->id]);
 
         $data = $dashboardService->getDashboardData();
 

@@ -3,9 +3,12 @@
 namespace App\Livewire\Dashboard;
 
 use App\Models\Device;
+use App\Models\UserPreference;
+use App\Services\ActivityLogger;
 use App\Services\AlertService;
 use App\Services\DashboardService;
 use App\Services\DeviceCommandService;
+use App\Services\MqttPublisher;
 use Livewire\Component;
 
 class DeviceStatus extends Component
@@ -24,7 +27,7 @@ class DeviceStatus extends Component
 
     public string $lastUpdatedLabel = 'Last Updated: Waiting for device...';
 
-    public string $deviceNameLabel = 'Waiting for device...';
+    public string $deviceNameLabel = 'Waiting for device name...';
 
     public string $deviceIdLabel = 'Waiting for device ID...';
 
@@ -160,10 +163,7 @@ class DeviceStatus extends Component
 
     public array $telemetryKpis = [];
 
-    // Yield-related properties removed to enforce research scope (telemetry-only)
     public bool $hasChartTelemetry = false;
-
-    public bool $hasYieldData = false;
 
     public string $monitoringSensorsBadgeLabel = 'Waiting for sensor data...';
 
@@ -181,8 +181,11 @@ class DeviceStatus extends Component
 
     public string $alertSeverityFilter = self::ALERT_SEVERITY_FILTER_ALL;
 
+    public array $dashboardPreferences = [];
+
     public function mount(DashboardService $dashboardService): void
     {
+        $this->dashboardPreferences = UserPreference::forUser(auth()->id());
         $this->refreshDashboard($dashboardService, false);
     }
 
@@ -191,6 +194,7 @@ class DeviceStatus extends Component
         return view('livewire.dashboard.device-status', [
             'device' => $this->device,
             'telemetryAlerts' => $alertService->filteredTelemetryAlerts($this->alerts, $this->alertSeverityFilter),
+            'prefs' => $this->dashboardPreferences,
         ]);
     }
 
@@ -206,9 +210,7 @@ class DeviceStatus extends Component
                 analyticsCategories: $this->analyticsCategories,
                 telemetryChartReadings: $this->telemetryChartReadings,
                 telemetryKpis: $this->telemetryKpis,
-                // yieldSeries and yieldLabels intentionally omitted
                 hasChartTelemetry: $this->hasChartTelemetry,
-                hasYieldData: $this->hasYieldData,
             );
         }
     }
@@ -225,6 +227,8 @@ class DeviceStatus extends Component
         if ($currentDeviceId !== $previousDeviceId) {
             $this->dispatch('dashboard-device-selected', deviceId: $currentDeviceId);
         }
+
+        $this->dispatch('dashboard-device-status-updated', isOnline: (bool) ($this->device?->is_online ?? false));
     }
 
     protected function applyDashboardData(array $data): void
@@ -268,7 +272,7 @@ class DeviceStatus extends Component
         $commandService = app(DeviceCommandService::class);
         $title = ucwords(str_replace('_', ' ', $command));
 
-        $commandService->queueCommand(
+        $commandModel = $commandService->queueCommand(
             $this->device,
             $command,
             [],
@@ -278,8 +282,20 @@ class DeviceStatus extends Component
             ['source' => 'dashboard']
         );
 
-        $this->commandStatusMessage = "Queued command: {$title}";
+        $published = MqttPublisher::publishCommand($this->device, $commandModel);
+        if ($published) {
+            $this->commandStatusMessage = "Command sent: {$title}";
+        } else {
+            $commandService->markCommandDelivered($commandModel);
+            $this->commandStatusMessage = "Queued (offline): {$title}";
+        }
+
         $this->refreshDashboard(app(DashboardService::class));
+    }
+
+    public function toggleActuator(string $command): void
+    {
+        $this->queueDeviceCommand($command);
     }
 
     public function filteredTelemetryAlerts(): array

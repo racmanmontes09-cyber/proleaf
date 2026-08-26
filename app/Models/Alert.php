@@ -11,6 +11,7 @@ class Alert extends Model
 {
     protected $fillable = [
         'device_id',
+        'greenhouse_id',
         'telemetry_id',
         'title',
         'message',
@@ -36,6 +37,11 @@ class Alert extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    public function greenhouse(): BelongsTo
+    {
+        return $this->belongsTo(Greenhouse::class);
     }
 
     public function telemetry(): BelongsTo

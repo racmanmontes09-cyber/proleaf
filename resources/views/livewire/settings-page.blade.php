@@ -94,43 +94,6 @@
         </div>
 
         <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Notifications</h3>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Dashboard Notifications</span>
-                    <select wire:model="settings.dashboard_notifications" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Browser Notifications</span>
-                    <select wire:model="settings.browser_notifications" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Alert Cooldown</span>
-                    <input type="number" wire:model="settings.alert_cooldown" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Critical Alert Repeat</span>
-                    <input type="number" wire:model="settings.critical_alert_repeat" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Enable Notifications</span>
-                    <select wire:model="settings.enable_notifications" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
-            </div>
-        </div>
-
-        <!-- Greenhouse & Crop fields removed to comply with research scope -->
-
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
             <h3 class="text-lg font-semibold text-[#1B4332]">Device Defaults</h3>
             <div class="mt-4 grid gap-4 md:grid-cols-2">
                 <label class="text-sm font-semibold text-[#1B4332]">
@@ -144,33 +107,6 @@
                 <label class="text-sm font-semibold text-[#1B4332]">
                     <span>Default Heartbeat Interval</span>
                     <input type="number" wire:model="settings.default_heartbeat_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <!-- Future camera/OTA fields removed to enforce no-camera limitation -->
-            </div>
-        </div>
-
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Appearance</h3>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Theme</span>
-                    <input type="text" wire:model="settings.theme" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Timezone</span>
-                    <input type="text" wire:model="settings.timezone" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Date Format</span>
-                    <input type="text" wire:model="settings.date_format" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Temperature Unit</span>
-                    <input type="text" wire:model="settings.temperature_unit" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Water Volume Unit</span>
-                    <input type="text" wire:model="settings.water_volume_unit" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
                 </label>
             </div>
         </div>
@@ -196,8 +132,6 @@
                 </div>
             </div>
             <div class="mt-4 flex flex-wrap gap-2">
-                <button class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Export Settings</button>
-                <button class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Import Settings</button>
                 <button wire:click="resetToDefaults" class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Reset to Defaults</button>
             </div>
         </div>

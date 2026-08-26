@@ -8,12 +8,17 @@ return [
             'commands_per_minute' => 60,
         ],
     ],
+    'device_status' => [
+        // The firmware heartbeat is 4 seconds; allow one missed heartbeat
+        // plus transport and scheduler jitter before showing offline.
+        'online_grace_seconds' => (int) env('LEAF_DEVICE_ONLINE_GRACE_SECONDS', 10),
+    ],
     'dashboard' => [
         'device_db_id' => (int) env('LEAF_DASHBOARD_DEVICE_DB_ID', 358),
         'fake_telemetry_firmware' => env('LEAF_DASHBOARD_FAKE_TELEMETRY_FIRMWARE', 'leaf-fake-dashboard-telemetry'),
         'live_chart' => [
-            'max_points' => (int) env('LEAF_DASHBOARD_MAX_VISIBLE_POINTS', 120),
-            'buffer_points' => (int) env('LEAF_DASHBOARD_INTERNAL_BUFFER_POINTS', 150),
+            'max_points' => (int) env('LEAF_DASHBOARD_MAX_VISIBLE_POINTS', 720),
+            'buffer_points' => (int) env('LEAF_DASHBOARD_INTERNAL_BUFFER_POINTS', 1000),
             'poll_interval_ms' => 1000,
             'poll_batch_limit' => 120,
             'realtime_enabled' => env('LEAF_DASHBOARD_REALTIME_TELEMETRY', true),
@@ -21,15 +26,29 @@ return [
             'debug' => env('LEAF_DASHBOARD_CHART_DEBUG', false),
         ],
     ],
+    'camera' => [
+        // The ESP32-S3-CAM registers its LAN address via device heartbeat;
+        // live view connects the browser directly to the camera stream.
+        'stream_scheme' => env('LEAF_CAMERA_STREAM_SCHEME', 'http'),
+        'stream_port' => (int) env('LEAF_CAMERA_STREAM_PORT', 81),
+        'stream_path' => env('LEAF_CAMERA_STREAM_PATH', '/stream'),
+        'audio_port' => (int) env('LEAF_CAMERA_AUDIO_PORT', 82),
+        'audio_path' => env('LEAF_CAMERA_AUDIO_PATH', '/audio'),
+    ],
     'mqtt' => [
         'host' => env('MQTT_HOST', '127.0.0.1'),
         'port' => (int) env('MQTT_PORT', 1883),
-        'topic' => env('MQTT_TOPIC', 'devices/+/telemetry'),
         'client_id' => env('MQTT_CLIENT_ID', 'leaf-mqtt-subscriber'),
         'qos' => (int) env('MQTT_QOS', 0),
         'username' => env('MQTT_USERNAME'),
         'password' => env('MQTT_PASSWORD'),
         'use_tls' => env('MQTT_USE_TLS', false),
+        'topics' => [
+            'telemetry' => env('MQTT_TOPIC_TELEMETRY', 'leaf/devices/+/telemetry'),
+            'status' => env('MQTT_TOPIC_STATUS', 'leaf/devices/+/status'),
+            'results' => env('MQTT_TOPIC_RESULTS', 'leaf/devices/+/results'),
+            'commands' => env('MQTT_TOPIC_COMMANDS', 'leaf/devices/{device_id}/commands'),
+        ],
     ],
     'simulation' => [
         'device_token' => env('LEAF_SIMULATION_DEVICE_TOKEN'),

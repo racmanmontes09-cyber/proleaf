@@ -36,6 +36,8 @@ class AlertService
     public function evaluateTelemetry(Device $device, Telemetry $telemetry): array
     {
         $thresholds = $this->thresholdService->getAllThresholds();
+        $preloaded = $this->alertRepository->preloadActiveAlertsBySensor($device);
+        $sensorsToResolve = [];
 
         foreach ($this->activeSensors as $sensor) {
             $value = $telemetry->{$sensor};
@@ -53,7 +55,11 @@ class AlertService
                         'Air Temperature',
                         'Air temperature is %s relative to the configured threshold.',
                         'thermometer',
-                        $metadata
+                        $metadata,
+                        'LOW',
+                        'HIGH',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'humidity':
@@ -67,7 +73,11 @@ class AlertService
                         'Humidity',
                         'Humidity is %s relative to the configured threshold.',
                         'droplet',
-                        $metadata
+                        $metadata,
+                        'LOW',
+                        'HIGH',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'water_temperature':
@@ -81,7 +91,11 @@ class AlertService
                         'Water Temperature',
                         'Water temperature is %s relative to the configured threshold.',
                         'thermometer',
-                        $metadata
+                        $metadata,
+                        'LOW',
+                        'HIGH',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'ph':
@@ -95,7 +109,11 @@ class AlertService
                         'Water pH',
                         'Water pH is %s relative to the configured threshold.',
                         'beaker',
-                        $metadata
+                        $metadata,
+                        'LOW',
+                        'HIGH',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'ec':
@@ -109,7 +127,11 @@ class AlertService
                         'EC',
                         'EC is %s relative to the configured threshold.',
                         'sparkles',
-                        $metadata
+                        $metadata,
+                        'LOW',
+                        'HIGH',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'water_flow':
@@ -125,7 +147,9 @@ class AlertService
                         'waves',
                         $metadata,
                         'LOW FLOW',
-                        'HIGH FLOW'
+                        'HIGH FLOW',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
                 case 'water_level':
@@ -142,13 +166,19 @@ class AlertService
                         'droplet',
                         $metadata,
                         'LOW',
-                        'FULL'
+                        'FULL',
+                        $preloaded,
+                        $sensorsToResolve
                     );
                     break;
             }
         }
 
-        $this->evaluateOfflineAlert($device, $telemetry);
+        $this->evaluateOfflineAlert($device, $telemetry, $preloaded, $sensorsToResolve);
+
+        if ($sensorsToResolve !== []) {
+            $this->alertRepository->batchResolve($sensorsToResolve);
+        }
 
         return $this->getActiveAlertsForDevice($device);
     }
@@ -190,10 +220,12 @@ class AlertService
         string $icon,
         array $metadata = [],
         string $lowLabel = 'LOW',
-        string $highLabel = 'HIGH'
+        string $highLabel = 'HIGH',
+        array $preloaded = [],
+        array &$sensorsToResolve = []
     ): void {
         if ($value === null) {
-            $this->resolveAlertForSensor($device, $sensor);
+            $sensorsToResolve = array_merge($sensorsToResolve, $preloaded[$sensor] ?? []);
             return;
         }
 
@@ -204,7 +236,7 @@ class AlertService
             $message = sprintf($messageTemplate, strtolower($status));
             $threshold = $this->formatThreshold($low, $high, $lowLabel, $highLabel);
 
-            if ($this->alertRepository->findActiveBySensor($device, $sensor, $title) === null) {
+            if ($this->alertRepository->findInPreloaded($preloaded, $sensor, $title) === null) {
                 $this->alertRepository->create([
                     'device_id' => $device->id,
                     'telemetry_id' => $telemetry->id,
@@ -222,31 +254,137 @@ class AlertService
             return;
         }
 
-        $this->resolveAlertForSensor($device, $sensor);
+        $sensorsToResolve = array_merge($sensorsToResolve, $preloaded[$sensor] ?? []);
     }
 
-    protected function evaluateOfflineAlert(Device $device, Telemetry $telemetry): void
+    protected function evaluateOfflineAlert(Device $device, Telemetry $telemetry, array $preloaded = [], array &$sensorsToResolve = []): void
     {
         if (! $device->is_online) {
-            if ($this->alertRepository->findActiveOfflineAlert($device) === null) {
-                $this->alertRepository->create([
-                    'device_id' => $device->id,
-                    'telemetry_id' => $telemetry->id,
-                    'title' => 'ESP32 Offline',
-                    'message' => 'The device has not reported telemetry recently.',
-                    'sensor' => 'device_offline',
-                    'severity' => 'critical',
-                    'status' => 'active',
-                    'value' => null,
-                    'threshold' => null,
-                    'metadata' => ['icon' => 'signal'],
-                ]);
+            if ($this->alertRepository->findInPreloaded($preloaded, 'device_offline', 'Greenhouse Device Offline') === null
+                && $this->alertRepository->findInPreloaded($preloaded, 'device_offline', 'ESP32 Offline') === null) {
+                $this->triggerOfflineAlert($device, $telemetry);
             }
 
             return;
         }
 
-        $this->resolveAlertForSensor($device, 'device_offline');
+        $offlineAlerts = $preloaded['device_offline'] ?? [];
+        if (! empty($offlineAlerts)) {
+            $this->triggerRecoveryNotification($device);
+        }
+
+        $sensorsToResolve = array_merge($sensorsToResolve, $offlineAlerts);
+    }
+
+    /**
+     * Create an offline alert for a device and dispatch an email to Super Admins.
+     */
+    public function triggerOfflineAlert(Device $device, ?Telemetry $telemetry = null): ?Alert
+    {
+        $existing = $this->alertRepository->findActiveOfflineAlert($device);
+        if ($existing !== null) {
+            return null;
+        }
+
+        $greenhouse = $device->greenhouse;
+        $farmer = $greenhouse?->farmer;
+        $greenhouseName = $greenhouse?->name ?? 'Default Greenhouse';
+        $farmerName = $farmer?->name ?? 'Unassigned';
+
+        $alert = $this->alertRepository->create([
+            'device_id' => $device->id,
+            'greenhouse_id' => $greenhouse?->id,
+            'telemetry_id' => $telemetry?->id,
+            'title' => 'Greenhouse Device Offline',
+            'message' => "Greenhouse '{$greenhouseName}' device ({$device->device_id}) is offline. Assigned farmer: {$farmerName}.",
+            'sensor' => 'device_offline',
+            'severity' => 'critical',
+            'status' => 'active',
+            'value' => null,
+            'threshold' => null,
+            'metadata' => [
+                'icon' => 'signal',
+                'greenhouse_id' => $greenhouse?->id,
+                'greenhouse' => $greenhouseName,
+                'farmer' => $farmerName,
+                'device' => $device->device_id,
+                'last_seen' => $device->last_seen_at?->toIso8601String(),
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $this->sendOfflineEmail($device, $alert);
+
+        return $alert;
+    }
+
+    /**
+     * Create a recovery notification when an offline device reconnects.
+     */
+    public function triggerRecoveryNotification(Device $device): ?Alert
+    {
+        $this->alertRepository->resolveOfflineAlerts($device);
+
+        $greenhouse = $device->greenhouse;
+        $farmer = $greenhouse?->farmer;
+        $greenhouseName = $greenhouse?->name ?? 'Default Greenhouse';
+        $farmerName = $farmer?->name ?? 'Unassigned';
+
+        return $this->alertRepository->create([
+            'device_id' => $device->id,
+            'greenhouse_id' => $greenhouse?->id,
+            'title' => 'Greenhouse Device Reconnected',
+            'message' => "Greenhouse '{$greenhouseName}' device ({$device->device_id}) is back online.",
+            'sensor' => 'device_online',
+            'severity' => 'info',
+            'status' => 'active',
+            'value' => null,
+            'threshold' => null,
+            'metadata' => [
+                'icon' => 'check-circle',
+                'recovery' => true,
+                'greenhouse_id' => $greenhouse?->id,
+                'greenhouse' => $greenhouseName,
+                'farmer' => $farmerName,
+                'device' => $device->device_id,
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Send email to Super Admins notifying that a greenhouse is offline.
+     */
+    public function sendOfflineEmail(Device $device, ?Alert $alert = null): void
+    {
+        try {
+            $greenhouse = $device->greenhouse ?? new \App\Models\Greenhouse([
+                'name' => 'Default Greenhouse',
+                'location' => 'Zone 1',
+            ]);
+
+            $farmerName = $greenhouse->farmer?->name ?? 'Unassigned';
+            $lastSeen = $device->last_seen_at ? $device->last_seen_at->diffForHumans() : 'Never';
+
+            $superAdmins = \App\Models\User::query()
+                ->whereHas('roles', fn ($q) => $q->where('slug', config('rbac.super_admin_role', 'super-admin')))
+                ->get();
+
+            if ($superAdmins->isNotEmpty()) {
+                foreach ($superAdmins as $admin) {
+                    \Illuminate\Support\Facades\Mail::to($admin->email)->send(
+                        new \App\Mail\GreenhouseOfflineNotification(
+                            greenhouse: $greenhouse,
+                            device: $device,
+                            farmerName: $farmerName,
+                            lastSeen: $lastSeen
+                        )
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed sending greenhouse offline email notification: '.$e->getMessage());
+        }
     }
 
     protected function resolveAlertForSensor(Device $device, string $sensor): void

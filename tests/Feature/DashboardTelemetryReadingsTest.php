@@ -14,7 +14,7 @@ class DashboardTelemetryReadingsTest extends TestCase
     public function test_dashboard_telemetry_readings_require_authentication(): void
     {
         $this->getJson('/dashboard/telemetry/readings')
-            ->assertRedirect('/login');
+            ->assertStatus(401);
     }
 
     public function test_dashboard_telemetry_readings_return_initial_rolling_history(): void
@@ -201,5 +201,48 @@ class DashboardTelemetryReadingsTest extends TestCase
             ->assertJsonPath('latest_id', $latest->id)
             ->assertJsonPath('latest_kpis', null)
             ->assertJsonCount(0, 'readings');
+    }
+
+    public function test_dashboard_telemetry_readings_filter_by_date_time_range(): void
+    {
+        $user = User::factory()->create();
+        $device = Device::create(['device_id' => 'LEAF-RANGE-01', 'name' => 'Range Device', 'last_seen_at' => now()]);
+        $before = $device->telemetries()->create(['ph' => 5.9, 'measured_at' => now()->setTime(8, 0)]);
+        $inside = $device->telemetries()->create(['ph' => 6.4, 'measured_at' => now()->setTime(12, 0)]);
+        $after = $device->telemetries()->create(['ph' => 7.1, 'measured_at' => now()->setTime(18, 0)]);
+
+        $response = $this->actingAs($user)->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&from='.now()->format('Y-m-d').'T10:00&to='.now()->format('Y-m-d').'T14:00');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'readings')
+            ->assertJsonPath('readings.0.id', $inside->id)
+            ->assertJsonPath('latest_kpis.ph.value', '6.4');
+        $this->assertNotSame($before->id, $response->json('readings.0.id'));
+        $this->assertNotSame($after->id, $response->json('readings.0.id'));
+    }
+
+    public function test_dashboard_telemetry_readings_reject_invalid_date_range(): void
+    {
+        $user = User::factory()->create();
+        $device = Device::create(['device_id' => 'LEAF-RANGE-02', 'name' => 'Range Device', 'last_seen_at' => now()]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&from=2026-08-25T14:00&to=2026-08-25T10:00');
+
+        $this->assertSame(422, $response->status(), (string) $response->headers->get('Location'));
+        $this->assertArrayHasKey('to', $response->json('errors'));
+    }
+
+    public function test_dashboard_telemetry_readings_return_empty_for_range_without_data(): void
+    {
+        $user = User::factory()->create();
+        $device = Device::create(['device_id' => 'LEAF-RANGE-03', 'name' => 'Range Device', 'last_seen_at' => now()]);
+        $device->telemetries()->create(['ph' => 6.4, 'measured_at' => now()->subDays(3)]);
+
+        $this->actingAs($user)
+            ->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&from='.now()->subDay()->format('Y-m-d\\TH:i').'&to='.now()->format('Y-m-d\\TH:i'))
+            ->assertOk()
+            ->assertJsonCount(0, 'readings')
+            ->assertJsonPath('latest_kpis', null);
     }
 }

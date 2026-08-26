@@ -71,6 +71,26 @@ class User extends Authenticatable
         return Permission::query()->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))->get();
     }
 
+    public function greenhouses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Greenhouse::class, 'user_id');
+    }
+
+    public function greenhouse(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Greenhouse::class, 'user_id')->latestOfMany();
+    }
+
+    public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    public function preferences(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
     public function hasPermission(string $permission): bool
     {
         return Permission::query()->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $this->roles()->pluck('roles.id')->all()))
@@ -84,6 +104,34 @@ class User extends Authenticatable
         return $this->hasPermission($permission) || $this->hasRole(config('rbac.super_admin_role', 'super-admin'));
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(config('rbac.super_admin_role', 'super-admin'));
+    }
+
+    public function isFarmer(): bool
+    {
+        return $this->hasRole('farmer') || (! $this->isSuperAdmin() && $this->greenhouse()->exists());
+    }
+
+    public function primaryRoleName(): string
+    {
+        if ($this->isSuperAdmin()) {
+            return 'Super Admin';
+        }
+
+        if ($this->hasRole('farmer') || $this->isFarmer()) {
+            return 'Farmer';
+        }
+
+        $roleName = $this->roles->first()?->name ?? 'Farmer';
+
+        return match ($roleName) {
+            'Telemetry Viewer', 'telemetry-viewer' => 'Viewer',
+            default => $roleName,
+        };
+    }
+
     /**
      * The attributes that are mass assignable.
      */
@@ -91,6 +139,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_active',
     ];
 
     /**
@@ -109,6 +158,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 }

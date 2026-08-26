@@ -1,22 +1,29 @@
 <x-app-layout>
+    <style>
+        @media (max-width: 639px) {
+            .mobile-dashboard-type * {
+                font-size: 7px !important;
+            }
+        }
+    </style>
+
     @php
         $user = auth()->user();
         $assignedDevice = App\Models\Device::query()->latest('last_seen_at')->first();
     @endphp
 
-    <div class="space-y-8">
+    <div class="mobile-dashboard-type space-y-3 sm:space-y-8">
         
-        <x-leaf.page-header 
-            title="Profile & Security Settings" 
-            subtitle="Manage your personal account details, change access password, and review security settings."
-            badge="Account Operator"
-        />
+        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#2D6A4F] transition hover:text-[#1B4332]">
+            <span aria-hidden="true">&larr;</span>
+            Back to Dashboard
+        </a>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6">
             
             <!-- Left Info Column -->
-            <div class="lg:col-span-4 space-y-6">
-                <div class="p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6">
+            <div class="lg:col-span-4 space-y-3 sm:space-y-6">
+                <div class="p-3 sm:p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-3 sm:space-y-6">
                     <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
                         <div class="w-16 h-16 rounded-2xl bg-[#2D6A4F] text-white flex items-center justify-center text-2xl font-bold shadow-md">
                             {{ strtoupper(substr($user?->name ?? 'U', 0, 1)) }}
@@ -48,24 +55,24 @@
             </div>
 
             <!-- Right Forms Column -->
-            <div class="lg:col-span-8 space-y-6">
+            <div class="lg:col-span-8 space-y-3 sm:space-y-6">
                 
                 <!-- Profile Info Form -->
-                <div class="p-6 sm:p-8 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+                <div class="p-3 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
                     <div class="max-w-xl">
                         <livewire:profile.update-profile-information-form />
                     </div>
                 </div>
 
                 <!-- Update Password Form -->
-                <div class="p-6 sm:p-8 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
+                <div class="p-3 sm:p-6 bg-white rounded-3xl border border-[#2D6A4F]/10 shadow-sm">
                     <div class="max-w-xl">
                         <livewire:profile.update-password-form />
                     </div>
                 </div>
 
                 <!-- Delete User Form -->
-                <div class="p-6 sm:p-8 bg-rose-50/50 rounded-3xl border border-rose-200 shadow-sm">
+                <div class="p-3 sm:p-6 bg-rose-50/50 rounded-3xl border border-rose-200 shadow-sm">
                     <div class="max-w-xl">
                         <livewire:profile.delete-user-form />
                     </div>

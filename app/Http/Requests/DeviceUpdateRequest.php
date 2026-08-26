@@ -20,6 +20,7 @@ class DeviceUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'type'             => ['nullable', 'string', 'in:sensor,camera'],
             'name'             => ['nullable', 'string', 'max:255'],
             'firmware_version' => ['nullable', 'string', 'max:50'],
             'local_ip_address' => ['nullable', 'ip'],

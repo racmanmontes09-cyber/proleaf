@@ -73,12 +73,21 @@ if (broadcastKey) {
 
 if (window.Echo?.connector?.pusher?.connection) {
     const pusherConnection = window.Echo.connector.pusher.connection;
+    console.log('[Realtime] Echo connecting', { host: echoOptions.wsHost, port: echoOptions.wsPort, key: echoOptions.key });
     pusherConnection.bind('connected', () => {
-        console.log('Echo connected to Pusher:', pusherConnection.state);
+        console.log('[Realtime] Echo connected', { state: pusherConnection.state });
     });
     pusherConnection.bind('error', (error) => {
-        console.error('Echo Pusher connection error:', error);
+        console.error('[Realtime] Echo connection error:', error);
     });
+    pusherConnection.bind('disconnected', () => {
+        console.warn('[Realtime] Echo disconnected');
+    });
+    pusherConnection.bind('connecting', () => {
+        console.log('[Realtime] Echo reconnecting...');
+    });
+} else {
+    console.warn('[Realtime] Echo connector not available');
 }
 
 
@@ -147,6 +156,8 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         useEchoTelemetry: Boolean(config.useEchoTelemetry),
         pollingFallbackEnabled: Boolean(config.pollingFallbackEnabled),
         debugTelemetryCharts: Boolean(config.debugTelemetryCharts),
+        deviceOnline: Boolean(config.deviceOnline),
+        onlineGraceMs: Number.parseInt(config.onlineGraceMs || 10000, 10),
         telemetryChannelName: null,
         telemetryHandler: null,
         realtimeConnected: false,
@@ -161,6 +172,11 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         lastReadingTimestamp: Number.NEGATIVE_INFINITY,
         seenReadingIds: new Set(),
         loadingInitialHistory: false,
+        historicalFrom: '',
+        historicalTo: '',
+        historicalPreset: 'custom',
+        historicalFilterError: '',
+        historicalHasData: false,
         kpiKeys,
         kpis: normalizeKpiState(config.initialKpis || config.initialChartPayload?.telemetryKpis),
         kpiPulse: emptyPulseState(),
@@ -171,10 +187,15 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             analytics: null,
             history: null,
         },
+        isLive: true,
+        selectedOverviewSensor: 'all',
+        visibleWindowMs: 30 * 24 * 60 * 60 * 1000,
         overviewData: {
             ph: [],
             waterTemp: [],
             ec: [],
+            airTemp: [],
+            humidity: [],
         },
         analyticsData: {
             airTemp: [],
@@ -214,7 +235,22 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
 
             this.renderOrUpdateCharts(initialPayload);
             this.listenToPusher();
-            this.startTelemetryPolling();
+
+            if (!this.useEchoTelemetry) {
+                console.log('[Realtime] Echo disabled, starting HTTP polling fallback');
+                this.startTelemetryPolling();
+            } else {
+                console.log('[Realtime] Echo enabled, polling will only start if subscription fails');
+                if (this.pollingFallbackEnabled) {
+                    const fallbackDelayMs = 5000;
+                    window.setTimeout(() => {
+                        if (!this.destroyed && !this.realtimeConnected && !this.polling) {
+                            console.log('[Realtime] Echo did not connect within', fallbackDelayMs, 'ms, starting polling fallback');
+                            this.startTelemetryPolling();
+                        }
+                    }, fallbackDelayMs);
+                }
+            }
         },
         async fetchTelemetryHistoryPayload(fallbackPayload = {}) {
             if (!this.pollingUrl) {
@@ -272,6 +308,12 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         },
         listenToPusher() {
             if (!this.useEchoTelemetry || typeof window.Echo === 'undefined' || this.subscribed || !this.deviceId) {
+                console.log('[Realtime] listenToPusher skipped', {
+                    useEchoTelemetry: this.useEchoTelemetry,
+                    echoDefined: typeof window.Echo !== 'undefined',
+                    alreadySubscribed: this.subscribed,
+                    deviceId: this.deviceId,
+                });
                 return;
             }
 
@@ -283,31 +325,35 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.subscribed = true;
             this.telemetryChannelName = channelName;
             this.telemetryHandler = (data) => this.handleTelemetryReceived(data);
+
+            console.log('[Realtime] subscribing to', channelName);
             const channel = window.Echo.private(channelName);
-            // Prefer the dot-prefixed broadcast name (Laravel broadcasts with broadcastAs()).
             channel.listen('.TelemetryReceived', this.telemetryHandler);
 
-            if (typeof channel.subscribed === 'function') {
-                channel.subscribed(() => {
-                    if (this.destroyed) {
-                        return;
-                    }
-                    this.realtimeConnected = true;
-                });
-            }
+            channel.subscribed(() => {
+                if (this.destroyed) {
+                    return;
+                }
+                this.realtimeConnected = true;
+                console.log('[Realtime] subscribed to', channelName);
+            });
 
-            if (typeof channel.error === 'function') {
-                channel.error((error) => {
-                    this.realtimeConnected = false;
-                    console.debug('Telemetry Echo subscription error:', error);
-                    if (this.pollingFallbackEnabled) {
-                        this.startTelemetryPolling();
-                    }
-                });
-            }
+            channel.error((error) => {
+                this.realtimeConnected = false;
+                this.subscribed = false;
+                console.error('[Realtime] subscription error:', channelName, error);
+                if (this.pollingFallbackEnabled) {
+                    this.startTelemetryPolling();
+                }
+            });
+
+            channel.listen('.broadcast-reverb-connected', () => {
+                console.log('[Realtime] Reverb confirmed connected');
+            });
         },
         leaveTelemetryChannel() {
             if (this.telemetryChannelName && typeof window.Echo !== 'undefined') {
+                console.log('[Realtime] leaving channel', this.telemetryChannelName);
                 window.Echo.leave(this.telemetryChannelName);
             }
 
@@ -369,13 +415,6 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 url.searchParams.set('after_id', String(this.lastReadingId || 0));
                 url.searchParams.set('limit', String(this.pollBatchLimit));
 
-                console.debug('Polling telemetry...', {
-                    deviceId: requestedDeviceId,
-                    afterId: this.lastReadingId || 0,
-                    limit: this.pollBatchLimit,
-                    url: url.toString(),
-                });
-
                 const response = await fetch(url, {
                     headers: { Accept: 'application/json' },
                     credentials: 'same-origin',
@@ -390,11 +429,6 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 if (this.destroyed) {
                     return;
                 }
-                console.debug('Telemetry poll HTTP 200', {
-                    deviceId: json?.device_id ?? requestedDeviceId,
-                    latestId: json?.latest_id ?? null,
-                    readings: Array.isArray(json?.readings) ? json.readings.length : 0,
-                });
 
                 if (requestedDeviceId && this.normalizeDeviceId(this.deviceId) !== requestedDeviceId) {
                     return;
@@ -405,9 +439,6 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 const readings = Array.isArray(json.readings) ? json.readings : [];
 
                 if (readings.length > 0) {
-                    console.debug('Received telemetry readings; updating dashboard...', {
-                        newestId: json.latest_id ?? readings[readings.length - 1]?.id ?? null,
-                    });
                     this.handleTelemetryReadings(readings, json.latest_kpis || null);
                 }
             } catch (error) {
@@ -450,6 +481,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return;
             }
 
+            this.isLive = true;
             this.leaveTelemetryChannel();
             this.deviceId = nextDeviceId;
             this.hasChartTelemetry = false;
@@ -484,6 +516,15 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return;
             }
 
+            if (!this.deviceOnline) {
+                this.deviceOnline = true;
+            }
+            clearTimeout(this._staleTimer);
+            this._staleTimer = setTimeout(() => {
+                this.deviceOnline = false;
+                this.applyOfflineStatus();
+            }, this.onlineGraceMs);
+
             this.handleTelemetryReadings([data]);
         },
         handleTelemetryReadings(readings, latestKpis = null) {
@@ -500,17 +541,8 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return;
             }
 
-            console.debug('Applying telemetry readings to dashboard state...', {
-                count: normalized.length,
-                firstId: normalized[0]?.id ?? null,
-                lastId: normalized[normalized.length - 1]?.id ?? null,
-            });
-
             let changed = false;
             let latestChartableReading = null;
-            let trimmedOccurred = false;
-            let orderingRefreshRequired = false;
-            const appendBatch = [];
             let nextKpis = null;
 
             if (this.hasMeaningfulKpiPayload(latestKpis)) {
@@ -522,7 +554,6 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     return;
                 }
 
-                const previousLastReadingTimestamp = this.lastReadingTimestamp;
                 this.rememberReading(reading);
                 this.lastReadingId = Math.max(this.lastReadingId, reading.id || 0);
                 this.lastReadingTimestamp = Math.max(this.lastReadingTimestamp, reading.x);
@@ -531,23 +562,15 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     return;
                 }
 
-                const outOfOrder = this.hasBufferedChartData() && reading.x < previousLastReadingTimestamp;
-
                 this.pushReading(reading);
                 latestChartableReading = reading;
-                appendBatch.push(reading);
                 changed = true;
-
-                if (outOfOrder) {
-                    this.sortSeriesByTimestamp();
-                    orderingRefreshRequired = true;
-                }
-
-                // Trim arrays and detect if trimming removed items
-                if (this.trimSeries()) {
-                    trimmedOccurred = true;
-                }
             });
+
+            if (changed) {
+                this.sortSeriesByTimestamp();
+                this.trimSeries();
+            }
 
             if (changed || nextKpis) {
                 this.hasChartTelemetry = true;
@@ -559,117 +582,12 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     this.updateKpis(nextKpis);
                 }
 
-                if (!this.initialized) {
-                    this.logChartDebug('bootstrap-refresh', {
-                        points: appendBatch.length,
-                    });
-                    this.refreshMountedCharts(false, 'bootstrap');
-                } else if (trimmedOccurred || orderingRefreshRequired) {
-                    this.logChartDebug('updateSeries-fallback', {
-                        reason: trimmedOccurred ? 'trim' : 'ordering',
-                        points: appendBatch.length,
-                    });
-                    this.refreshMountedCharts(false, trimmedOccurred ? 'trim' : 'ordering');
-                } else if (appendBatch.length > 0 && !this.appendToChartsForBatch(appendBatch)) {
-                    this.logChartDebug('appendData-fallback', {
-                        points: appendBatch.length,
-                    });
-                    this.refreshMountedCharts(false, 'append-fallback');
+                if (this.initialized) {
+                    this.refreshMountedCharts(false, changed ? 'live-tick' : 'kpi-only');
                 }
             }
         },
 
-        appendToChartsForBatch(readings) {
-            if (!Array.isArray(readings) || readings.length === 0) {
-                return true;
-            }
-
-            const overviewSeries = [
-                { data: [] },
-                { data: [] },
-                { data: [] },
-            ];
-            const analyticsSeries = [
-                { data: [] },
-                { data: [] },
-                { data: [] },
-            ];
-            const historySeries = [
-                { data: [] },
-                { data: [] },
-                { data: [] },
-                { data: [] },
-                { data: [] },
-                { data: [] },
-                { data: [] },
-            ];
-            const safePoint = (reading, value) => ({ x: reading.x, y: value === null ? null : value, id: reading.id || 0 });
-
-            readings.forEach((reading) => {
-                overviewSeries[0].data.push(safePoint(reading, reading.ph));
-                overviewSeries[1].data.push(safePoint(reading, reading.water_temperature));
-                overviewSeries[2].data.push(safePoint(reading, reading.ec));
-
-                analyticsSeries[0].data.push(safePoint(reading, reading.air_temperature));
-                analyticsSeries[1].data.push(safePoint(reading, reading.humidity));
-                analyticsSeries[2].data.push(safePoint(reading, reading.water_flow));
-
-                historySeries[0].data.push(safePoint(reading, reading.air_temperature));
-                historySeries[1].data.push(safePoint(reading, reading.humidity));
-                historySeries[2].data.push(safePoint(reading, reading.water_temperature));
-                historySeries[3].data.push(safePoint(reading, reading.ph));
-                historySeries[4].data.push(safePoint(reading, reading.ec));
-                historySeries[5].data.push(safePoint(reading, reading.water_flow));
-                historySeries[6].data.push(safePoint(reading, reading.water_level));
-            });
-
-            let appended = false;
-            let failed = false;
-
-            if (this.charts.telemetryOverview && typeof this.charts.telemetryOverview.appendData === 'function') {
-                try {
-                    this.logChartDebug('appendData', {
-                        chart: 'telemetryOverview',
-                        points: overviewSeries[0].data.length,
-                    });
-                    this.charts.telemetryOverview.appendData(overviewSeries);
-                    appended = true;
-                } catch (e) {
-                    failed = true;
-                    console.debug('telemetryOverview appendData failed', e);
-                }
-            }
-
-            if (this.charts.analytics && typeof this.charts.analytics.appendData === 'function') {
-                try {
-                    this.logChartDebug('appendData', {
-                        chart: 'analytics',
-                        points: analyticsSeries[0].data.length,
-                    });
-                    this.charts.analytics.appendData(analyticsSeries);
-                    appended = true;
-                } catch (e) {
-                    failed = true;
-                    console.debug('analytics appendData failed', e);
-                }
-            }
-
-            if (this.charts.history && typeof this.charts.history.appendData === 'function') {
-                try {
-                    this.logChartDebug('appendData', {
-                        chart: 'history',
-                        points: historySeries[0].data.length,
-                    });
-                    this.charts.history.appendData(historySeries);
-                    appended = true;
-                } catch (e) {
-                    failed = true;
-                    console.debug('history appendData failed', e);
-                }
-            }
-
-            return appended && !failed;
-        },
         hasSeenReading(reading) {
             return reading.id > 0 && this.seenReadingIds.has(reading.id);
         },
@@ -723,6 +641,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 reading.water_temperature,
                 reading.ph,
                 reading.ec,
+                reading.water_flow,
                 reading.water_level,
             ].some((value) => value !== null && value !== undefined);
         },
@@ -760,11 +679,16 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.overviewData.ph.push(this.point(reading, 'ph'));
             this.overviewData.waterTemp.push(this.point(reading, 'water_temperature'));
             this.overviewData.ec.push(this.point(reading, 'ec'));
+            this.overviewData.airTemp.push(this.point(reading, 'air_temperature'));
+            this.overviewData.humidity.push(this.point(reading, 'humidity'));
 
             this.analyticsData.airTemp.push(this.point(reading, 'air_temperature'));
             this.analyticsData.humidity.push(this.point(reading, 'humidity'));
             this.analyticsData.waterFlow.push(this.point(reading, 'water_flow'));
 
+            this.pushHistoryReading(reading);
+        },
+        pushHistoryReading(reading) {
             this.historyData.airTemp.push(this.point(reading, 'air_temperature'));
             this.historyData.humidity.push(this.point(reading, 'humidity'));
             this.historyData.waterTemp.push(this.point(reading, 'water_temperature'));
@@ -806,14 +730,14 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             });
         },
         chartBufferLimit() {
-            return Math.max(this.maxPoints + 1, Number.isFinite(this.bufferPoints) ? this.bufferPoints : this.maxPoints);
+            return Math.max(this.maxPoints * 3, Number.isFinite(this.bufferPoints) ? this.bufferPoints : this.maxPoints);
         },
         trimSeriesArray(series) {
             if (series.length <= this.chartBufferLimit()) {
                 return false;
             }
 
-            while (series.length > this.maxPoints) {
+            while (series.length > this.chartBufferLimit()) {
                 series.shift();
             }
             return true;
@@ -870,6 +794,89 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             }
             this.trimSeries();
             this.hasChartTelemetry = this.hasBufferedChartData();
+            this.historicalHasData = this.historyDataHasData();
+        },
+        historyDataHasData() {
+            return Object.values(this.historyData).some((series) => series.some((point) => point.y !== null));
+        },
+        formatDateTimeLocal(date) {
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        },
+        setHistoricalPreset(preset) {
+            const now = new Date();
+            this.historicalPreset = preset;
+            this.historicalFilterError = '';
+
+            if (preset === 'custom') {
+                return;
+            }
+
+            const from = new Date(now);
+            if (preset === 'today') {
+                from.setHours(0, 0, 0, 0);
+            } else if (preset === '24h') {
+                from.setHours(from.getHours() - 24);
+            } else if (preset === '7d') {
+                from.setDate(from.getDate() - 7);
+            } else if (preset === '30d') {
+                from.setDate(from.getDate() - 30);
+            }
+
+            this.historicalFrom = this.formatDateTimeLocal(from);
+            this.historicalTo = this.formatDateTimeLocal(now);
+            this.applyHistoricalFilter();
+        },
+        historicalRangeLabel() {
+            if (!this.historicalFrom && !this.historicalTo) {
+                const now = new Date();
+                const from = new Date(now);
+                from.setDate(from.getDate() - 30);
+                const format = (date) => date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+
+                return `${format(from)} to ${format(now)}`;
+            }
+
+            const format = (value) => {
+                if (!value) return 'Beginning';
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            };
+
+            return `${format(this.historicalFrom)} to ${format(this.historicalTo)}`;
+        },
+        async applyHistoricalFilter() {
+            this.historicalFilterError = '';
+            if ((this.historicalFrom && !this.historicalTo) || (!this.historicalFrom && this.historicalTo)) {
+                this.historicalFilterError = 'Select both a start and end date/time.';
+                return;
+            }
+
+            if (this.historicalFrom && this.historicalTo && new Date(this.historicalFrom) > new Date(this.historicalTo)) {
+                this.historicalFilterError = 'The start date/time must be before the end date/time.';
+                return;
+            }
+
+            const url = new URL(this.pollingUrl, window.location.origin);
+            const requestedDeviceId = this.normalizeDeviceId(this.deviceId);
+            if (requestedDeviceId) url.searchParams.set('device_id', requestedDeviceId);
+            if (this.historicalFrom) url.searchParams.set('from', this.historicalFrom);
+            if (this.historicalTo) url.searchParams.set('to', this.historicalTo);
+            url.searchParams.set('limit', String(this.maxPoints));
+
+            try {
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const json = await response.json();
+                if (!response.ok) {
+                    this.historicalFilterError = Object.values(json.errors || {}).flat()[0] || 'Unable to load the selected date/time range.';
+                    return;
+                }
+
+                this.seedSeries({ telemetryChartReadings: Array.isArray(json.readings) ? json.readings : [] });
+                this.refreshMountedCharts(false, 'historical-filter');
+            } catch (error) {
+                this.historicalFilterError = 'Unable to load the selected date/time range.';
+            }
         },
         hasBufferedChartData() {
             return [
@@ -877,6 +884,36 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 ...Object.values(this.analyticsData),
                 ...Object.values(this.historyData),
             ].some((series) => series.some((point) => point.y !== null));
+        },
+        applyOfflineStatus() {
+            const nextKpis = { ...this.kpis };
+            this.kpiKeys.forEach((key) => {
+                const prev = nextKpis[key] || emptyKpi();
+                nextKpis[key] = { ...prev, status: 'Disconnected', statusType: 'danger' };
+            });
+            this.kpis = nextKpis;
+        },
+        onChartZoomed(xaxis) {
+            if (!xaxis || !this.lastReadingTimestamp || this.lastReadingTimestamp === Number.NEGATIVE_INFINITY) {
+                return;
+            }
+            const rightEdge = xaxis.max || 0;
+            const now = Date.now();
+            const liveThreshold = 5000;
+            if (now - rightEdge > liveThreshold) {
+                this.isLive = false;
+            }
+        },
+        goToLive() {
+            this.isLive = true;
+            this.refreshMountedCharts(false, 'go-to-live');
+        },
+        filterOverviewSensor() {
+            if (!this.charts.telemetryOverview) {
+                return;
+            }
+
+            this.charts.telemetryOverview.updateSeries(this.telemetryOverviewSeries(), false);
         },
         updateKpis(kpis, animate = true) {
             if (!kpis || typeof kpis !== 'object') {
@@ -893,7 +930,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
 
                 const previous = nextKpis[key] || emptyKpi();
                 const incoming = kpis[key] || {};
-                const hasIncomingValue = incoming.value !== undefined && incoming.value !== null && incoming.value !== '--';
+                const hasIncomingValue = incoming.value !== undefined && incoming.value !== null && incoming.value !== '--' || key === 'water_flow';
                 const hasIncomingStatus = incoming.status !== undefined && incoming.status !== null && incoming.status !== 'Waiting';
                 const hasIncomingStatusType = incoming.statusType !== undefined && incoming.statusType !== null && incoming.statusType !== 'standby';
                 const hasIncomingTrend = incoming.trend !== undefined && incoming.trend !== null && incoming.trend !== 'Waiting for sensor data...';
@@ -903,6 +940,11 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     statusType: hasIncomingStatusType ? incoming.statusType : (previous.statusType ?? 'standby'),
                     trend: hasIncomingTrend ? incoming.trend : (previous.trend ?? 'Waiting for sensor data...'),
                 };
+
+                if (!this.deviceOnline) {
+                    next.status = 'Disconnected';
+                    next.statusType = 'danger';
+                }
 
                 if (
                     next.value !== previous.value ||
@@ -950,6 +992,10 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             assignIfPresent('water_level', this.normalizeWaterLevel(reading.water_level), 0);
             assignIfPresent('water_flow', reading.water_flow, 1);
 
+            if (reading.water_flow === null || reading.water_flow === undefined) {
+                result['water_flow'] = { value: '--', status: 'OFFLINE', statusType: 'danger', trend: this.trendTextFromTimestamp(reading.x) };
+            }
+
             return result;
         },
         valueOnlyKpi(value, decimals, key, trendText = null) {
@@ -966,6 +1012,17 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             };
         },
         resolveKpiStatus(key, value) {
+            if (!this.deviceOnline) {
+                return { status: 'Disconnected', statusType: 'danger' };
+            }
+
+            if (key === 'water_flow') {
+                if (value === null || !Number.isFinite(value)) {
+                    return { status: 'OFFLINE', statusType: 'danger' };
+                }
+                return { status: 'ONLINE', statusType: 'online' };
+            }
+
             const thresholdConfig = this.thresholds[key] || {};
             const low = thresholdConfig.low;
             const high = thresholdConfig.high;
@@ -1043,22 +1100,22 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             const type = this.kpis[key]?.statusType || 'standby';
 
             if (['online', 'success', 'active', 'running'].includes(type)) {
-                return 'bg-emerald-100 text-[#1B4332] border-emerald-200';
+                return 'text-emerald-700';
             }
 
             if (['offline', 'error', 'critical'].includes(type)) {
-                return 'bg-rose-100 text-rose-800 border-rose-200';
+                return 'text-rose-700';
             }
 
             if (type === 'warning') {
-                return 'bg-amber-100 text-amber-900 border-amber-200';
+                return 'text-amber-700';
             }
 
             if (type === 'info') {
-                return 'bg-[#95D5B2]/30 text-[#1B4332] border-[#2D6A4F]/20';
+                return 'text-[#2D6A4F]';
             }
 
-            return 'bg-slate-100 text-slate-700 border-slate-200';
+            return 'text-slate-600';
         },
         kpiStatusDotClass(key) {
             const type = this.kpis[key]?.statusType || 'standby';
@@ -1147,32 +1204,60 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 return;
             }
 
-            if (this.charts.telemetryOverview) {
-                this.logChartDebug('updateSeries', {
-                    chart: 'telemetryOverview',
-                    animate,
-                    reason,
+            const doUpdate = () => {
+                const xaxisRange = this.chartXaxisRange();
+
+                const charts = [
+                    { instance: this.charts.telemetryOverview, name: 'telemetryOverview', seriesFn: () => this.telemetryOverviewSeries() },
+                    { instance: this.charts.analytics, name: 'analytics', seriesFn: () => this.analyticsSeries() },
+                    { instance: this.charts.history, name: 'history', seriesFn: () => this.historySeries() },
+                ];
+
+                charts.forEach(({ instance, name, seriesFn }) => {
+                    if (!instance) {
+                        return;
+                    }
+                    this.logChartDebug('updateOptions', { chart: name, reason });
+                    const series = seriesFn();
+                    try {
+                        const opts = { series };
+                        opts.xaxis = xaxisRange;
+                        instance.updateOptions(opts, false, false, false);
+                    } catch (e) {
+                        /* swallow */
+                    }
                 });
-                this.charts.telemetryOverview.updateSeries(this.telemetryOverviewSeries(), animate);
+            };
+
+            if (typeof requestAnimationFrame !== 'undefined') {
+                requestAnimationFrame(doUpdate);
+            } else {
+                doUpdate();
+            }
+        },
+        chartXaxisRange() {
+            const timestamps = [
+                ...Object.values(this.overviewData),
+                ...Object.values(this.analyticsData),
+                ...Object.values(this.historyData),
+            ]
+                .flat()
+                .map((point) => point.x)
+                .filter((timestamp) => Number.isFinite(timestamp));
+
+            if (timestamps.length === 0) {
+                const now = Date.now();
+                return { min: now - this.visibleWindowMs, max: now };
             }
 
-            if (this.charts.analytics) {
-                this.logChartDebug('updateSeries', {
-                    chart: 'analytics',
-                    animate,
-                    reason,
-                });
-                this.charts.analytics.updateSeries(this.analyticsSeries(), animate);
-            }
+            const earliest = Math.min(...timestamps);
+            const latest = Math.max(...timestamps);
+            const now = Date.now();
 
-            if (this.charts.history) {
-                this.logChartDebug('updateSeries', {
-                    chart: 'history',
-                    animate,
-                    reason,
-                });
-                this.charts.history.updateSeries(this.historySeries(), animate);
-            }
+            return {
+                min: this.isLive ? Math.min(earliest, now - this.visibleWindowMs) : earliest,
+                max: this.isLive ? Math.max(latest, now) : latest,
+            };
         },
         destroyCharts() {
             Object.values(this.charts).forEach((chart) => {
@@ -1193,6 +1278,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             };
         },
         destroy() {
+            console.log('[Realtime] destroying telemetry dashboard');
             this.destroyed = true;
             this.stopTelemetryPolling();
             this.leaveTelemetryChannel();
@@ -1204,16 +1290,41 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return {
                 chart: {
                     height,
-                    toolbar: { show: false },
                     fontFamily: 'Inter, sans-serif',
                     animations: {
-                        enabled: true,
-                        easing: 'linear',
-                        speed: 250,
-                        animateGradually: { enabled: false },
-                        dynamicAnimation: { enabled: true, speed: 250 },
+                        enabled: false,
                     },
-                    zoom: { enabled: false },
+                    zoom: {
+                        enabled: true,
+                        type: 'x',
+                        autoScaleYaxis: true,
+                        zoomedChartWindow: 10,
+                    },
+                    panning: {
+                        enabled: true,
+                        enableThreshold: 5,
+                    },
+                    brush: {
+                        enabled: false,
+                    },
+                    selection: {
+                        enabled: true,
+                        type: 'x',
+                        fill: { color: '#2D6A4F', opacity: 0.1 },
+                        stroke: { color: '#2D6A4F', width: 1, dashArray: 3 },
+                    },
+                    events: {
+                        zoomed: (chartContext, { xaxis }) => {
+                            this.onChartZoomed(xaxis);
+                        },
+                        selection: (event, chartContext, config) => {
+                            if (config?.xaxis) {
+                                this.onChartZoomed(config.xaxis);
+                            }
+                            return false;
+                        },
+                    },
+                    toolbar: { show: false },
                 },
                 dataLabels: { enabled: false },
                 markers: { size: 0, hover: { size: 4 } },
@@ -1221,14 +1332,40 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     type: 'datetime',
                     labels: {
                         datetimeUTC: false,
-                        style: { colors: '#1B4332' },
+                        style: { colors: '#1B4332', fontSize: '10px' },
+                        formatter(value) {
+                            const d = new Date(value);
+                            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+                        },
+                    },
+                    crosshairs: {
+                        show: true,
+                        stroke: { color: '#2D6A4F', width: 1, dashArray: 3 },
                     },
                     tooltip: { enabled: false },
+                    axisBorder: { show: true, color: '#E5E7EB' },
+                    axisTicks: { show: true, color: '#E5E7EB' },
                 },
-                yaxis: { labels: { style: { colors: '#1B4332' } } },
-                tooltip: { x: { format: 'HH:mm:ss' } },
+                yaxis: { labels: { style: { colors: '#1B4332', fontSize: '10px' } } },
+                tooltip: {
+                    x: {
+                        formatter(value) {
+                            const d = new Date(value);
+                            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+                        },
+                    },
+                    theme: 'light',
+                },
                 grid: { borderColor: '#E5E7EB', strokeDashArray: 4 },
-                legend: { position: 'top', horizontalAlign: 'right' },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    fontSize: window.innerWidth < 640 ? '7px' : '10px',
+                },
                 ...extra,
             };
         },
@@ -1236,9 +1373,10 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return this.baseChartOptions(280, {
                 series: this.telemetryOverviewSeries(),
                 chart: { ...this.baseChartOptions(280).chart, type: 'area' },
-                colors: ['#2D6A4F', '#40916C', '#95D5B2'],
+                colors: ['#2D6A4F', '#40916C', '#95D5B2', '#E76F51', '#264653'],
                 fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] } },
                 stroke: { curve: 'smooth', width: 2.5 },
+                xaxis: { ...this.baseChartOptions(280).xaxis, ...this.chartXaxisRange() },
             });
         },
         analyticsOptions() {
@@ -1249,6 +1387,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 colors: ['#D8F3DC', '#2D6A4F', '#40916C'],
                 plotOptions: { bar: { columnWidth: '40%', borderRadius: 6 } },
                 grid: { borderColor: '#F1F5F9' },
+                xaxis: { ...this.baseChartOptions(320).xaxis, ...this.chartXaxisRange() },
             });
         },
         historyOptions() {
@@ -1258,14 +1397,23 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 colors: ['#1B4332', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#2D6A4F', '#6B7280'],
                 stroke: { curve: 'smooth', width: 2 },
                 fill: { type: 'solid', opacity: 0.08 },
+                xaxis: { ...this.baseChartOptions(300).xaxis, ...this.chartXaxisRange() },
             });
         },
         telemetryOverviewSeries() {
-            return [
+            const series = [
                 { name: 'Water pH', data: [...this.overviewData.ph] },
                 { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
                 { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] },
+                { name: 'Air Temp (°C)', data: [...this.overviewData.airTemp] },
+                { name: 'Humidity (%)', data: [...this.overviewData.humidity] },
             ];
+
+            if (this.selectedOverviewSensor === 'all') {
+                return series;
+            }
+
+            return series.filter((entry) => entry.name === this.selectedOverviewSensor);
         },
         analyticsSeries() {
             return [
@@ -1290,51 +1438,26 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
 
 function updateDashboardClock() {
     const clockElement = document.getElementById('dashboard-clock-time');
-    if (!clockElement) {
-        return;
-    }
+    const dateElement = document.getElementById('dashboard-date');
+    const now = new Date();
 
-    clockElement.textContent = new Date().toLocaleTimeString([], {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-    });
-}
-
-function updateEsp32Status() {
-    const statusDot = document.getElementById('esp32-status-dot');
-    const statusLabel = document.getElementById('esp32-status-label');
-
-    if (!statusDot || !statusLabel) {
-        return;
-    }
-
-    fetch('/dashboard/esp32/status', {
-        headers: {
-            Accept: 'application/json',
-        },
-        credentials: 'same-origin',
-    })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch ESP32 status');
-            }
-            return response.json();
-        })
-        .then((json) => {
-            const online = Boolean(json.online);
-            statusLabel.textContent = json.statusLabel || (online ? 'ESP32 Online' : 'ESP32 Offline');
-            statusDot.className = `h-2.5 w-2.5 rounded-full ${online ? 'bg-[#2D6A4F]' : 'bg-rose-500'}`;
-        })
-        .catch((error) => {
-            console.debug('ESP32 status refresh error:', error);
+    if (clockElement) {
+        clockElement.textContent = now.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
         });
+    }
+
+    if (dateElement) {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        dateElement.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     updateDashboardClock();
-    updateEsp32Status();
-
     setInterval(updateDashboardClock, 1000);
-    setInterval(updateEsp32Status, 5000);
 });
+

@@ -66,22 +66,11 @@ class SettingsPage extends Component
             ['key' => 'pump_delay', 'value' => '10', 'type' => 'integer', 'group' => 'automation', 'label' => 'Pump Delay', 'description' => 'Delay between pump actions.'],
             ['key' => 'automatic_dosing', 'value' => '1', 'type' => 'boolean', 'group' => 'automation', 'label' => 'Automatic Dosing', 'description' => 'Enables automated dosing.'],
             ['key' => 'automatic_irrigation', 'value' => '1', 'type' => 'boolean', 'group' => 'automation', 'label' => 'Automatic Irrigation', 'description' => 'Enables automated irrigation.'],
-            ['key' => 'dashboard_notifications', 'value' => '1', 'type' => 'boolean', 'group' => 'notifications', 'label' => 'Dashboard Notifications', 'description' => 'Enable on-dashboard alerts.'],
-            ['key' => 'browser_notifications', 'value' => '0', 'type' => 'boolean', 'group' => 'notifications', 'label' => 'Browser Notifications', 'description' => 'Enable browser notifications.'],
-            ['key' => 'alert_cooldown', 'value' => '300', 'type' => 'integer', 'group' => 'notifications', 'label' => 'Alert Cooldown (seconds)', 'description' => 'Cooldown period between repeated alerts.'],
-            ['key' => 'critical_alert_repeat', 'value' => '3', 'type' => 'integer', 'group' => 'notifications', 'label' => 'Critical Alert Repeat', 'description' => 'How many times critical alerts repeat.'],
-            ['key' => 'enable_notifications', 'value' => '1', 'type' => 'boolean', 'group' => 'notifications', 'label' => 'Enable Notifications', 'description' => 'Enable notifications globally.'],
-            // Greenhouse and crop-related defaults removed to adhere to approved scope
             ['key' => 'default_device_name', 'value' => 'ESP32 Device', 'type' => 'string', 'group' => 'device_defaults', 'label' => 'Default Device Name', 'description' => 'Default name for new devices.'],
             ['key' => 'default_upload_interval', 'value' => '5', 'type' => 'integer', 'group' => 'device_defaults', 'label' => 'Default Upload Interval', 'description' => 'Default upload interval for new devices.'],
             ['key' => 'default_heartbeat_interval', 'value' => '30', 'type' => 'integer', 'group' => 'device_defaults', 'label' => 'Default Heartbeat Interval', 'description' => 'Default heartbeat interval for new devices.'],
             // Removed future camera setting to prevent camera support
             // OTA remains internal; do not expose camera settings in research scope
-            ['key' => 'theme', 'value' => 'default', 'type' => 'string', 'group' => 'appearance', 'label' => 'Theme', 'description' => 'Application theme.'],
-            ['key' => 'timezone', 'value' => 'UTC', 'type' => 'string', 'group' => 'appearance', 'label' => 'Timezone', 'description' => 'Application timezone.'],
-            ['key' => 'date_format', 'value' => 'Y-m-d', 'type' => 'string', 'group' => 'appearance', 'label' => 'Date Format', 'description' => 'Preferred date display format.'],
-            ['key' => 'temperature_unit', 'value' => 'C', 'type' => 'string', 'group' => 'appearance', 'label' => 'Temperature Unit', 'description' => 'Preferred temperature unit.'],
-            ['key' => 'water_volume_unit', 'value' => 'L', 'type' => 'string', 'group' => 'appearance', 'label' => 'Water Volume Unit', 'description' => 'Preferred water volume unit.'],
         ];
 
         foreach ($defaults as $default) {
@@ -117,16 +106,9 @@ class SettingsPage extends Component
             'settings.pump_delay' => ['required', 'integer', 'min:0'],
             'settings.automatic_dosing' => ['required', 'boolean'],
             'settings.automatic_irrigation' => ['required', 'boolean'],
-            'settings.dashboard_notifications' => ['required', 'boolean'],
-            'settings.browser_notifications' => ['required', 'boolean'],
-            'settings.alert_cooldown' => ['required', 'integer', 'min:0'],
-            'settings.critical_alert_repeat' => ['required', 'integer', 'min:1'],
-            'settings.enable_notifications' => ['required', 'boolean'],
             'settings.default_device_name' => ['required', 'string', 'max:255'],
             'settings.default_upload_interval' => ['required', 'integer', 'min:1'],
             'settings.default_heartbeat_interval' => ['required', 'integer', 'min:1'],
-            // greenhouse/crop fields and future camera setting removed per research scope
-            'settings.future_ota_enabled' => ['required', 'boolean'],
             'settings.theme' => ['required', 'string', 'max:50'],
             'settings.timezone' => ['required', 'string', 'max:100'],
             'settings.date_format' => ['required', 'string', 'max:50'],
@@ -176,17 +158,10 @@ class SettingsPage extends Component
             'pump_delay' => '10',
             'automatic_dosing' => '1',
             'automatic_irrigation' => '1',
-            'dashboard_notifications' => '1',
-            'browser_notifications' => '0',
-            'alert_cooldown' => '300',
-            'critical_alert_repeat' => '3',
-            'enable_notifications' => '1',
             // greenhouse and crop fields intentionally omitted
             'default_device_name' => 'ESP32 Device',
             'default_upload_interval' => '5',
             'default_heartbeat_interval' => '30',
-            // future_camera_enabled removed
-            'future_ota_enabled' => '0',
             'theme' => 'default',
             'timezone' => 'UTC',
             'date_format' => 'Y-m-d',

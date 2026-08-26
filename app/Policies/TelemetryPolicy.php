@@ -12,8 +12,4 @@ class TelemetryPolicy
         return $user->canPerform('telemetry.view');
     }
 
-    public function export(User $user): bool
-    {
-        return $user->canPerform('telemetry.export');
-    }
 }

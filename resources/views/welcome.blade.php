@@ -95,9 +95,15 @@
             background-image: radial-gradient(rgba(45, 106, 79, 0.08) 1px, transparent 1px);
             background-size: 24px 24px;
         }
+
+        @media (max-width: 639px) {
+            .mobile-dashboard-type * {
+                font-size: 7px !important;
+            }
+        }
     </style>
 </head>
-<body class="min-h-screen antialiased bg-grid-pattern selection:bg-[#95D5B2] selection:text-[#1B4332] flex flex-col justify-between">
+<body class="mobile-dashboard-type min-h-screen antialiased bg-grid-pattern selection:bg-[#95D5B2] selection:text-[#1B4332] flex flex-col justify-between">
 
     <!-- Mobile Navigation Menu State Toggle (Alpine/Vanilla fallback script included) -->
     <div id="app" class="relative overflow-x-hidden flex-grow">
@@ -111,13 +117,11 @@
                     
                     <!-- Left: Logo & Brand -->
                     <a href="#" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] rounded-xl p-1">
+                        <img src="{{ asset('logo/is_logo.png') }}" alt="Project L.E.A.F. is logo" class="h-10 w-10 object-contain" />
                         <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-10 w-10 object-contain" />
                         <div class="flex flex-col">
                             <span class="text-xl font-extrabold tracking-tight text-[#1B4332] flex items-center gap-1.5">
                                 Project L.E.A.F.
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#2D6A4F]/10 text-[#2D6A4F] border border-[#2D6A4F]/20">
-                                    IoT v1.0
-                                </span>
                             </span>
                         </div>
                     </a>
@@ -138,11 +142,6 @@
                                 <a href="{{ route('login') }}" class="px-4 py-2 rounded-lg text-sm font-semibold text-[#1B4332] hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">
                                     Log in
                                 </a>
-                                @if (Route::has('register'))
-                                    <a href="{{ route('register') }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-md shadow-[#2D6A4F]/25 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2">
-                                        Get Started
-                                    </a>
-                                @endif
                             @endauth
                         @else
                             <a href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-md shadow-[#2D6A4F]/25 hover:shadow-lg transition-all duration-200">
@@ -183,11 +182,6 @@
                             <a href="{{ route('login') }}" class="w-full text-center px-5 py-2.5 rounded-xl text-base font-semibold text-[#1B4332] bg-[#2D6A4F]/10">
                                 Log in
                             </a>
-                            @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="w-full text-center px-5 py-3 rounded-xl text-base font-semibold text-white bg-[#2D6A4F]">
-                                    Get Started
-                                </a>
-                            @endif
                         @endauth
                     @else
                         <a href="{{ url('/dashboard') }}" class="w-full text-center px-5 py-3 rounded-xl text-base font-semibold text-white bg-[#2D6A4F]">
@@ -477,7 +471,7 @@
                             🌡 Environmental Monitoring
                         </h3>
                         <p class="text-sm text-[#1B4332]/75 leading-relaxed">
-                            Comprehensive tracking of ambient air Temperature and Humidity. Maintain optimal VPD (Vapor Pressure Deficit) levels tailored specifically for lettuce crop yield.
+                            Comprehensive tracking of ambient air Temperature and Humidity for lettuce cultivation conditions.
                         </p>
                         <div class="mt-6 flex flex-wrap gap-2">
                             <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Ambient Air Temp</span>
@@ -752,7 +746,7 @@
                             The Science of Automated Lettuce Hydroponics
                         </h2>
                         <p class="text-base text-[#1B4332]/80 leading-relaxed">
-                            Project L.E.A.F. combines embedded microelectronics with web automation to streamline hydroponic NFT (Nutrient Film Technique) operations. By standardizing pH and EC telemetry, farmers reduce water consumption and optimize growth cycles for superior lettuce crop yields.
+                            Project L.E.A.F. combines embedded microelectronics with web automation to streamline hydroponic NFT (Nutrient Film Technique) operations. By standardizing pH and EC telemetry, the system supports consistent nutrient and water conditions for lettuce cultivation.
                         </p>
                         
                         <div class="space-y-4 pt-2">
@@ -966,7 +960,7 @@
                             <span class="text-xl font-bold text-white tracking-tight">Project L.E.A.F.</span>
                         </div>
                         <p class="text-xs sm:text-sm text-[#95D5B2]/80 leading-relaxed max-w-md">
-                            Lettuce Environment Automation & Farming. An IoT-Based Hydroponic Cultivation System designed for precision monitoring, real-time sensor analytics, and crop yield optimization.
+                            Lettuce Environment Automation & Farming. An IoT-Based Hydroponic Cultivation System designed for precision monitoring, real-time sensor analytics, and environmental automation.
                         </p>
                     </div>
 

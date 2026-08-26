@@ -49,11 +49,13 @@ class DeviceStatusService
      */
     public function getLastUpdatedLabel(?Device $device): string
     {
-        if ($device && $device->last_seen_at) {
-            return 'Last Updated: '.$device->last_seen_at->diffForHumans();
+        if (! $device || ! $device->last_seen_at) {
+            return 'Last Updated: Waiting for device...';
         }
 
-        return 'Last Updated: Waiting for device...';
+        $suffix = $device->is_online ? 'Now' : $device->last_seen_at->diffForHumans();
+
+        return 'Last Updated: '.$suffix;
     }
 
     /**
@@ -121,11 +123,11 @@ class DeviceStatusService
      */
     public function getLastSeenLabel(?Device $device): string
     {
-        if ($device && $device->last_seen_at) {
-            return $device->last_seen_at->diffForHumans();
+        if (! $device || ! $device->last_seen_at) {
+            return 'Waiting for device...';
         }
 
-        return 'Waiting for device...';
+        return $device->is_online ? 'Now' : $device->last_seen_at->diffForHumans();
     }
 
     /**
@@ -184,7 +186,7 @@ class DeviceStatusService
                 'freeHeap' => $device->free_heap !== null ? $device->free_heap.' B' : 'Waiting for hardware...',
                 'battery' => 'Pending hardware integration',
                 'transportStatus' => $device->is_online ? 'Connected via HTTP API' : 'Offline',
-                'lastSeen' => $device->last_seen_at ? $device->last_seen_at->diffForHumans() : 'Waiting for device...',
+                'lastSeen' => $device->last_seen_at ? ($device->is_online ? 'Now' : $device->last_seen_at->diffForHumans()) : 'Waiting for device...',
             ];
         })->all();
     }
@@ -196,21 +198,38 @@ class DeviceStatusService
     {
         return [
             [
-                'name' => 'Water Circulation Pump',
-                'detail' => 'Waiting for hardware integration',
-                'status' => 'PENDING',
+                'name' => 'Nutrient Dosing Pump A',
+                'detail' => 'Relay · Primary nutrient dosing',
+                'command' => 'nutrient_a',
+                'status' => 'OFF',
                 'statusType' => 'standby',
             ],
             [
-                'name' => 'Nutrient Dosing Pump A',
-                'detail' => 'Waiting for hardware integration',
-                'status' => 'PENDING',
+                'name' => 'Nutrient Dosing Pump B',
+                'detail' => 'Relay · Secondary nutrient dosing',
+                'command' => 'nutrient_b',
+                'status' => 'OFF',
+                'statusType' => 'standby',
+            ],
+            [
+                'name' => 'pH Up Dosing Pump',
+                'detail' => 'Relay · pH increase dosing',
+                'command' => 'ph_up',
+                'status' => 'OFF',
+                'statusType' => 'standby',
+            ],
+            [
+                'name' => 'pH Down Dosing Pump',
+                'detail' => 'Relay · pH decrease dosing',
+                'command' => 'ph_down',
+                'status' => 'OFF',
                 'statusType' => 'standby',
             ],
             [
                 'name' => 'VPD Intake Cooling Fan',
-                'detail' => 'Waiting for hardware integration',
-                'status' => 'PENDING',
+                'detail' => 'Relay · Temperature regulation',
+                'command' => 'cooling_fan',
+                'status' => 'OFF',
                 'statusType' => 'standby',
             ],
         ];

@@ -7,6 +7,7 @@ use App\Services\TelemetryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Carbon;
 
 class DashboardTelemetryController extends Controller
 {
@@ -16,7 +17,12 @@ class DashboardTelemetryController extends Controller
             'device_id' => ['nullable', 'integer', 'min:1'],
             'after_id' => ['nullable', 'integer', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'from' => ['nullable', 'date_format:Y-m-d\\TH:i'],
+            'to' => ['nullable', 'date_format:Y-m-d\\TH:i', 'after_or_equal:from'],
         ]);
+
+        $from = isset($validated['from']) ? Carbon::createFromFormat('Y-m-d\\TH:i', $validated['from']) : null;
+        $to = isset($validated['to']) ? Carbon::createFromFormat('Y-m-d\\TH:i', $validated['to']) : null;
 
         $device = $this->resolveDevice($validated['device_id'] ?? null);
 
@@ -37,7 +43,7 @@ class DashboardTelemetryController extends Controller
         $limit = (int) ($validated['limit'] ?? ($afterId > 0 ? $configuredBatchLimit : $configuredMaxPoints));
         $limit = max(1, min($limit, 500));
 
-        $readings = $this->getTelemetryReadings($device, $telemetryService, $afterId, $limit);
+        $readings = $this->getTelemetryReadings($device, $telemetryService, $afterId, $limit, $from, $to);
 
         $latestReading = $readings->last();
 
@@ -77,8 +83,14 @@ class DashboardTelemetryController extends Controller
         Device $device,
         TelemetryService $telemetryService,
         int $afterId,
-        int $limit
+        int $limit,
+        ?Carbon $from = null,
+        ?Carbon $to = null
     ): Collection {
+        if ($from !== null || $to !== null) {
+            return $telemetryService->getTelemetryHistoryBetween($device, $from, $to, $limit);
+        }
+
         return $afterId > 0
             ? $telemetryService->getTelemetryAfterId($device, $afterId, $limit)
             : $telemetryService->getTelemetryHistory($device, $limit);

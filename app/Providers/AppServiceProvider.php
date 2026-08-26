@@ -12,6 +12,7 @@ use App\Models\Alert;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::define('admin-panel', fn (User $user): bool => $user->isSuperAdmin() || $user->hasRole('administrator'));
+
         RateLimiter::for('device-heartbeat', function (Request $request) {
             return Limit::perMinute((int) config('leaf.device_api.rate_limits.heartbeat_per_minute', 60))
                 ->by($this->deviceRateLimitKey($request));

@@ -6,11 +6,10 @@ use App\Models\Telemetry;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Support\Carbon;
 
-class TelemetryReceived implements ShouldBroadcast, ShouldDispatchAfterCommit
+class TelemetryReceived implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets;
 
@@ -29,6 +28,8 @@ class TelemetryReceived implements ShouldBroadcast, ShouldDispatchAfterCommit
         $this->deviceId = (int) $telemetry->device_id;
 
         $measuredAt = $telemetry->measured_at ?? $telemetry->updated_at ?? $telemetry->created_at;
+
+        $sequenceNumber = $telemetry->sequence_number;
 
         $this->payload = [
             'id' => (int) $telemetry->id,
@@ -56,11 +57,6 @@ class TelemetryReceived implements ShouldBroadcast, ShouldDispatchAfterCommit
         return [
             new PrivateChannel('devices.'.$this->deviceId.'.telemetry'),
         ];
-    }
-
-    public function broadcastQueue(): string
-    {
-        return 'broadcasts';
     }
 
     /**

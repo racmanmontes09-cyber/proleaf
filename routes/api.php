@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+})->middleware(['auth:sanctum', 'active']);
 
 Route::post('/devices/heartbeat', [DeviceController::class, 'heartbeat'])
     ->middleware(['device.auth', 'throttle:device-heartbeat']);

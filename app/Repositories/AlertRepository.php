@@ -103,4 +103,43 @@ class AlertRepository
             ->where('sensor', 'device_offline')
             ->first();
     }
+
+    public function preloadActiveAlertsBySensor(Device $device): array
+    {
+        $alerts = Alert::query()
+            ->forDevice($device)
+            ->active()
+            ->get();
+
+        $grouped = [];
+        foreach ($alerts as $alert) {
+            $grouped[$alert->sensor][] = $alert;
+        }
+
+        return $grouped;
+    }
+
+    public function findInPreloaded(array $preloaded, string $sensor, string $title): ?Alert
+    {
+        foreach ($preloaded[$sensor] ?? [] as $alert) {
+            if ($alert->title === $title) {
+                return $alert;
+            }
+        }
+
+        return null;
+    }
+
+    public function batchResolve(array $alerts): void
+    {
+        $ids = array_map(fn (Alert $a) => $a->id, $alerts);
+        if ($ids === []) {
+            return;
+        }
+
+        Alert::query()
+            ->whereIn('id', $ids)
+            ->where('status', '!=', 'resolved')
+            ->update(['status' => 'resolved', 'resolved_at' => now()]);
+    }
 }

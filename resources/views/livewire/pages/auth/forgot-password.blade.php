@@ -36,7 +36,15 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div class="min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8]">
+<style>
+    @media (max-width: 639px) {
+        .mobile-dashboard-type * {
+            font-size: 7px !important;
+        }
+    }
+</style>
+
+<div class="mobile-dashboard-type min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8]">
 
     <!-- ========================================== -->
     <!-- LEFT SIDE: BRANDING & SECURITY VISUAL (45%) -->
@@ -157,7 +165,7 @@ new #[Layout('layouts.guest')] class extends Component
             </div>
 
             <!-- Forgot Password Card Wrapper -->
-            <div class="p-8 sm:p-10 rounded-3xl bg-white/90 backdrop-blur-xl border border-[#2D6A4F]/12 shadow-2xl shadow-emerald-950/5 space-y-6">
+            <div class="p-0 lg:p-8 xl:p-10 rounded-none lg:rounded-3xl bg-transparent lg:bg-white/90 backdrop-blur-none lg:backdrop-blur-xl border-0 lg:border border-[#2D6A4F]/12 shadow-none lg:shadow-2xl lg:shadow-emerald-950/5 space-y-6">
                 
                 <!-- Card Header -->
                 <div class="space-y-2 text-left">

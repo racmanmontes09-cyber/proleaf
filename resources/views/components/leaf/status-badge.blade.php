@@ -34,7 +34,7 @@
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ' . $classes]) }}>
+<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] max-sm:text-[7px] max-sm:-translate-y-0.5 font-bold uppercase tracking-[0.18em] max-sm:tracking-[0.04em] ' . $classes]) }}>
     <span class="h-1.5 w-1.5 rounded-full {{ $dotColor }} {{ in_array($type, ['online', 'active', 'running']) ? 'animate-pulse' : '' }}"></span>
     {{ $label ?? $defaultLabel }}
 </span>

@@ -1,4 +1,4 @@
-<div wire:poll.visible.5s="refreshDashboardLight" class="min-w-0">
+<div wire:poll.visible.500ms="refreshDashboardLight" class="min-w-0">
 <div wire:ignore.self class="space-y-8 min-w-0" x-data="leafDashboardCharts({
     activeTab: 'dashboard',
     hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
@@ -11,6 +11,8 @@
     pollIntervalMs: {{ (int) config('leaf.dashboard.live_chart.poll_interval_ms', 1000) }},
     pollBatchLimit: {{ (int) config('leaf.dashboard.live_chart.poll_batch_limit', 120) }},
     debugTelemetryCharts: {{ json_encode((bool) config('leaf.dashboard.live_chart.debug', false)) }},
+    deviceOnline: {{ json_encode($device?->is_online ?? false) }},
+    onlineGraceMs: {{ (int) (config('leaf.device_status.online_grace_seconds', 10) * 1000) }},
     thresholds: {
         temperatureLow: {{ json_encode($temperatureLowThreshold) }},
         temperatureHigh: {{ json_encode($temperatureHighThreshold) }},
@@ -37,17 +39,18 @@
         analyticsCategories: {{ json_encode($analyticsCategories) }},
         hasChartTelemetry: {{ json_encode($hasChartTelemetry) }},
     },
-})" x-init="initApexCharts()" x-effect="activeTab; $dispatch('active-tab-changed', activeTab);" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)" x-on:dashboard-device-selected.window="switchTelemetryDevice($event.detail.deviceId)" x-on:switch-tab.window="activeTab = $event.detail">
+})" x-init="initApexCharts()" x-effect="activeTab; $dispatch('active-tab-changed', activeTab);" x-on:dashboard-chart-data-updated.window="updateApexCharts($event.detail)" x-on:dashboard-device-selected.window="switchTelemetryDevice($event.detail.deviceId)" x-on:dashboard-device-status-updated.window="deviceOnline = $event.detail.isOnline; if (!$event.detail.isOnline) applyOfflineStatus()" x-on:switch-tab.window="activeTab = $event.detail">
 
  
 
     <!-- ========================================== -->
     <!-- TAB CONTENT 1: DASHBOARD OVERVIEW           -->
     <!-- ========================================== -->
-    <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
+    <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-3 sm:space-y-8 min-w-0">
         <!-- KPI METRICS GRID -->
-        <div wire:ignore class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-5 min-w-0 items-stretch">
+        <div wire:ignore class="grid grid-cols-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-1 max-sm:gap-0.5 sm:gap-5 min-w-0 items-stretch">
             
+            @if ($prefs['kpi_cards']['air_temperature'] ?? true)
             <!-- Air Temp -->
             <x-leaf.kpi-card 
                 title="Air Temp" 
@@ -65,7 +68,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['humidity'] ?? true)
             <!-- Air Humidity -->
             <x-leaf.kpi-card 
                 title="Air Humidity" 
@@ -83,7 +88,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['water_temperature'] ?? true)
             <!-- Water Temp -->
             <x-leaf.kpi-card 
                 title="Water Temp" 
@@ -101,7 +108,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['ph'] ?? true)
             <!-- Water pH -->
             <x-leaf.kpi-card 
                 title="Water pH" 
@@ -119,7 +128,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['ec'] ?? true)
             <!-- EC -->
             <x-leaf.kpi-card 
                 title="Nutrient EC" 
@@ -137,7 +148,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['water_level'] ?? true)
             <!-- Water Level -->
             <x-leaf.kpi-card 
                 title="Water Level" 
@@ -155,7 +168,9 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
+            @if ($prefs['kpi_cards']['water_flow'] ?? true)
             <!-- Water Flow -->
             <x-leaf.kpi-card 
                 title="Water Flow" 
@@ -164,7 +179,6 @@
                 unit="L/min" 
                 :status="$waterFlowStatusLabel" 
                 :statusType="$waterFlowStatusType" 
-                target="{{ $waterFlowTargetLabel }}"
                 :trend="$waterFlowTrendText"
             >
                 <x-slot:icon>
@@ -173,42 +187,66 @@
                     </svg>
                 </x-slot:icon>
             </x-leaf.kpi-card>
+            @endif
 
         </div>
 
         <!-- MAIN DASHBOARD CONTENT GRID -->
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 lg:gap-6 min-w-0 items-start">
             
+            @if ($prefs['show_chart'] ?? true)
             <!-- Left Column: 24h ApexCharts Telemetry Card (8 Cols) -->
-            <div class="xl:col-span-8 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0 overflow-hidden flex flex-col justify-between">
+                <div class="xl:col-span-8 p-6 max-sm:p-3 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 max-sm:space-y-3 min-w-0 overflow-hidden flex flex-col justify-between">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 min-w-0">
                     <div class="min-w-0">
-                        <h3 class="text-lg font-bold text-[#1B4332] truncate">24-Hour Telemetry Analytics</h3>
-                        <p class="text-xs text-[#1B4332]/70 truncate">Solution pH, Water Temp (°C) and Electrical Conductivity (EC)</p>
+                        <p class="text-xs max-sm:text-[7px] text-[#1B4332]/70 truncate">Showing: <span x-text="historicalRangeLabel()"></span></p>
                     </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#95D5B2]/30 text-[#1B4332] shrink-0">
-                        Live WebSocket Feed
-                    </span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span x-show="historicalFilterError" x-text="historicalFilterError" class="text-[7px] sm:text-xs font-semibold text-rose-600"></span>
+                        <label for="historical-range-filter" class="sr-only">Filter date range</label>
+                        <select id="historical-range-filter" x-model="historicalPreset" @change="setHistoricalPreset(historicalPreset)" class="px-3 py-1.5 max-sm:px-1.5 max-sm:py-1 rounded-lg border border-[#2D6A4F]/20 bg-white text-xs max-sm:text-[7px] font-semibold text-[#1B4332] focus:border-[#2D6A4F] focus:outline-none focus:ring-2 focus:ring-[#95D5B2]/50">
+                            <option value="today">Today</option>
+                            <option value="24h">Last 24 Hours</option>
+                            <option value="7d">Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                        <label for="overview-sensor-filter" class="sr-only">Filter sensor readings</label>
+                        <select id="overview-sensor-filter" x-model="selectedOverviewSensor" @change="filterOverviewSensor()" class="px-3 py-1.5 max-sm:px-1.5 max-sm:py-1 rounded-lg border border-[#2D6A4F]/20 bg-white text-xs max-sm:text-[7px] font-semibold text-[#1B4332] focus:border-[#2D6A4F] focus:outline-none focus:ring-2 focus:ring-[#95D5B2]/50">
+                            <option value="all">All sensors</option>
+                            <option value="Water pH">Water pH</option>
+                            <option value="Water Temp (°C)">Water Temp (°C)</option>
+                            <option value="Nutrient EC (mS)">Nutrient EC (mS)</option>
+                            <option value="Air Temp (°C)">Air Temp (°C)</option>
+                            <option value="Humidity (%)">Humidity (%)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div wire:ignore id="telemetryOverviewChart" class="w-full h-[280px] sm:h-[320px] lg:h-[340px] min-h-[280px] overflow-hidden relative">
-                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
+                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-sm max-sm:text-[7px] font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
                         Waiting for sensor data...
                     </div>
+                    <button x-show="!isLive" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2" @click="goToLive()" type="button" class="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 max-sm:px-1.5 max-sm:py-1 rounded-full bg-[#2D6A4F] text-white text-xs max-sm:text-[7px] font-bold shadow-lg hover:bg-[#1B4332] transition-colors cursor-pointer">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Go to Live
+                    </button>
                 </div>
             </div>
+            @endif
 
             <!-- Right Column: Node Specs & Relays (4 Cols) -->
-            <div class="xl:col-span-4 space-y-6 min-w-0">
+            <div class="{{ ($prefs['show_chart'] ?? true) ? 'xl:col-span-4' : 'xl:col-span-12' }} flex flex-col gap-6 min-w-0">
 
+                @if ($prefs['show_controller_card'] ?? true)
                 <!-- Controller Card -->
-                <div class="p-3 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 min-w-0">
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-100 min-w-0">
-                        <h3 class="text-[11px] font-bold text-[#1B4332] truncate">ESP32 Controller Node</h3>
+                <div class="h-[233px] p-3 max-sm:p-2 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 max-sm:space-y-1.5 min-w-0 flex flex-col">
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100 min-w-0 shrink-0">
+                        <h3 class="text-[11px] max-sm:text-[7px] font-bold text-[#1B4332] truncate">ESP32 Controller Node</h3>
                         <x-leaf.status-badge :type="$deviceStatusType" :label="$deviceStatusLabel" class="shrink-0" />
                     </div>
 
-                    <div class="space-y-1.5 text-[10px] leading-5">
+                    <div class="space-y-1.5 text-xs max-sm:text-[7px] leading-5 max-sm:leading-3">
                         <div class="flex justify-between py-1 border-b border-gray-50 min-w-0">
                             <span class="text-gray-500">Device Name</span>
                             <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceNameLabel }}</span>
@@ -231,22 +269,42 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
+                @if ($prefs['show_actuator_relays'] ?? true)
                 <!-- Relay Actuators -->
-                <div class="p-3.5 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 min-w-0">
-                    <h3 class="text-[11px] font-bold text-[#1B4332]">Actuator Relays</h3>
-                    <div class="space-y-2 min-w-0">
+                <div class="h-[233px] p-3.5 max-sm:p-2 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-2.5 max-sm:space-y-1.5 min-w-0 flex flex-col" x-data x-effect="if ($wire.commandStatusMessage) { setTimeout(() => { $wire.set('commandStatusMessage', '') }, 3000) }">
+                    <div class="flex items-center justify-between shrink-0">
+                        <h3 class="text-[11px] max-sm:text-[7px] font-bold text-[#1B4332]">Actuator Relays</h3>
+                        @if ($commandStatusMessage)
+                            <span class="text-[9px] text-[#40916C] font-medium truncate max-w-[60%]">{{ $commandStatusMessage }}</span>
+                        @endif
+                    </div>
+                    <div class="space-y-2 min-w-0 flex-1 overflow-y-auto">
                         @foreach ($actuatorCards as $actuatorCard)
-                            <div class="p-2.5 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/10 flex items-center justify-between min-w-0">
+                            <div class="p-2.5 max-sm:p-1.5 rounded-2xl bg-[#F8FAF8] border border-[#2D6A4F]/10 flex items-center justify-between min-w-0">
                                 <div class="min-w-0">
-                                    <p class="text-[10px] font-bold text-[#1B4332] truncate">{{ $actuatorCard['name'] }}</p>
-                                    <p class="text-[10px] text-gray-500 truncate">{{ $actuatorCard['detail'] }}</p>
+                                    <p class="text-xs max-sm:text-[7px] text-[#1B4332] truncate">{{ $actuatorCard['name'] }}</p>
+                                    <p class="text-xs max-sm:text-[7px] text-gray-500 truncate">{{ $actuatorCard['detail'] }}</p>
                                 </div>
-                                <span class="px-2 py-0.5 text-[8px] font-semibold rounded-full shrink-0 {{ $actuatorCard['statusType'] === 'online' ? 'bg-[#2D6A4F] text-white' : ($actuatorCard['statusType'] === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-[#95D5B2]/40 text-[#1B4332]') }}">{{ $actuatorCard['status'] }}</span>
+                                <button
+                                    wire:click="toggleActuator('{{ $actuatorCard['command'] }}')"
+                                    wire:loading.attr="disabled"
+                                    class="px-3 py-1 max-sm:px-1.5 max-sm:py-0.5 text-[10px] max-sm:text-[7px] font-semibold rounded-full shrink-0 transition cursor-pointer
+                                        {{ $actuatorCard['statusType'] === 'online'
+                                            ? 'bg-[#2D6A4F] text-white hover:bg-[#1B4332]'
+                                            : ($actuatorCard['statusType'] === 'warning'
+                                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                                : 'bg-[#95D5B2]/40 text-[#1B4332] hover:bg-[#95D5B2]/60') }}
+                                        disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {{ $actuatorCard['status'] }}
+                                </button>
                             </div>
                         @endforeach
                     </div>
                 </div>
+                @endif
 
             </div>
 
@@ -256,255 +314,7 @@
 
     </div>
 
-    <!-- ========================================== -->
-    <!-- TAB CONTENT 2: MONITORING HUB              -->
-    <!-- ========================================== -->
-    <div x-show="activeTab === 'monitoring'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
-        
-        <x-leaf.page-header 
-            title="Real-Time Telemetry & Sensor Gauges" 
-            subtitle="Live precision sensors monitoring ambient atmospheric and hydroponic water solution variables."
-            badge="{{ $monitoringSensorsBadgeLabel }}"
-        />
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-w-0">
-            @forelse ($monitoringSensors as $sensor)
-                <x-leaf.sensor-card 
-                    name="{{ $sensor['name'] }}"
-                    value="{{ $sensor['value'] }}"
-                    unit="{{ $sensor['unit'] }}"
-                    status="{{ $sensor['status'] }}"
-                    statusType="{{ $sensor['statusType'] }}"
-                    min="{{ $sensor['min'] }}"
-                    max="{{ $sensor['max'] }}"
-                    percentage="{{ $sensor['percentage'] }}"
-                    optimalRange="{{ $sensor['optimalRange'] }}"
-                    lastCalibrated="{{ $sensor['lastCalibrated'] }}"
-                />
-            @empty
-                <x-leaf.sensor-card 
-                    name="Waiting for sensor data..."
-                    value="--"
-                    unit=""
-                    status="Waiting"
-                    statusType="standby"
-                    min="Not available"
-                    max="Not available"
-                    percentage="0"
-                    optimalRange="Not available"
-                    lastCalibrated="Waiting for sensor data..."
-                />
-            @endforelse
-        </div>
-
-        <!-- Sensor Diagnostics Table -->
-        <div class="space-y-4 min-w-0">
-            <h3 class="text-lg font-bold text-[#1B4332]">Sensor Hardware Calibration & ADC Signals</h3>
-            <x-leaf.table :headers="['Sensor Name', 'Hardware Pin', 'Raw ADC Voltage', 'Offset Drift', 'Signal Quality', 'Status', 'Actions']">
-                <tr>
-                    <td class="px-6 py-4 font-bold text-[#1B4332]">Analog pH Probe</td>
-                    <td class="px-6 py-4 font-mono text-[#2D6A4F]">Pending hardware mapping</td>
-                    <td class="px-6 py-4 font-mono">Pending hardware integration</td>
-                    <td class="px-6 py-4 font-mono text-emerald-600">Pending hardware integration</td>
-                    <td class="px-6 py-4 font-semibold text-[#2D6A4F]">Pending hardware integration</td>
-                    <td class="px-6 py-4"><x-leaf.status-badge type="standby" label="Pending" /></td>
-                    <td class="px-6 py-4"><button type="button" class="px-3 py-1 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] font-bold hover:bg-[#2D6A4F] hover:text-white transition-colors">Awaiting Hardware</button></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-bold text-[#1B4332]">EC Conductivity Probe</td>
-                    <td class="px-6 py-4 font-mono text-[#2D6A4F]">Pending hardware mapping</td>
-                    <td class="px-6 py-4 font-mono">Pending hardware integration</td>
-                    <td class="px-6 py-4 font-mono text-emerald-600">Pending hardware integration</td>
-                    <td class="px-6 py-4 font-semibold text-[#2D6A4F]">Pending hardware integration</td>
-                    <td class="px-6 py-4"><x-leaf.status-badge type="standby" label="Pending" /></td>
-                    <td class="px-6 py-4"><button type="button" class="px-3 py-1 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] font-bold hover:bg-[#2D6A4F] hover:text-white transition-colors">Awaiting Hardware</button></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-bold text-[#1B4332]">DS18B20 Water Temp</td>
-                    <td class="px-6 py-4 font-mono text-[#2D6A4F]">Pending hardware mapping</td>
-                    <td class="px-6 py-4 font-mono">Pending hardware mapping</td>
-                    <td class="px-6 py-4 font-mono text-gray-500">Pending hardware integration</td>
-                    <td class="px-6 py-4 font-semibold text-[#2D6A4F]">Pending hardware integration</td>
-                    <td class="px-6 py-4"><x-leaf.status-badge type="standby" label="Pending" /></td>
-                    <td class="px-6 py-4"><button type="button" class="px-3 py-1 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] font-bold hover:bg-[#2D6A4F] hover:text-white transition-colors">Awaiting Hardware</button></td>
-                </tr>
-            </x-leaf.table>
-        </div>
-
-    </div>
-
-    <!-- ========================================== -->
-    <!-- TAB CONTENT 3: ANALYTICS HUB               -->
-    <!-- ========================================== -->
-    <div x-show="activeTab === 'analytics'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
-        
-        <x-leaf.page-header 
-            title="Historical Telemetry & Analytics" 
-            subtitle="Deep historical insights into environmental variables, VPD trends, and nutrient balance."
-            badge="Interactive Charts"
-        />
-
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 lg:gap-6 min-w-0 items-start">
-            <div class="xl:col-span-8 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0 overflow-hidden flex flex-col justify-between">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 min-w-0">
-                    <div class="min-w-0">
-                        <h3 class="text-lg font-bold text-[#1B4332] truncate">Multi-Parameter Weekly Comparison</h3>
-                        <p class="text-xs text-[#1B4332]/70 truncate">Air Temperature vs Atmospheric Humidity vs Water Flow</p>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" class="px-3 py-1 rounded-lg bg-[#2D6A4F] text-white text-xs font-bold shadow-sm">Waiting for history</button>
-                        <button type="button" class="px-3 py-1 rounded-lg bg-gray-100 text-[#1B4332] text-xs font-bold hover:bg-gray-200">Export CSV</button>
-                    </div>
-                </div>
-
-                <div wire:ignore id="analyticsMultiChart" class="w-full h-[300px] sm:h-[320px] lg:h-[360px] min-h-[300px] overflow-hidden relative">
-                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
-                        Waiting for sensor data...
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analytics Summary Breakdown -->
-            <div class="xl:col-span-4 space-y-6 min-w-0">
-                <div class="p-6 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0">
-                    <h3 class="text-base font-bold text-[#1B4332]">Vapor Pressure Deficit (VPD)</h3>
-                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-2">
-                        <div class="flex justify-between items-baseline min-w-0">
-                            <span class="text-xs font-semibold text-[#1B4332]">Current VPD Index</span>
-                            <span class="text-xl font-extrabold text-[#2D6A4F]">Waiting for telemetry</span>
-                        </div>
-                        <p class="text-xs text-[#1B4332]/80">VPD values will appear once sufficient telemetry is available from the connected device.</p>
-                    </div>
-
-                    <div class="space-y-3 pt-2">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-gray-500">Weekly pH Stability</span>
-                            <span class="font-bold text-[#2D6A4F]">Waiting for telemetry</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-gray-500">EC Concentration Score</span>
-                            <span class="font-bold text-[#2D6A4F]">Waiting for telemetry</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-gray-500">Total Water Consumed</span>
-                            <span class="font-bold text-[#1B4332]">Waiting for telemetry</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-6 rounded-3xl bg-[#1B43332] text-white space-y-3 shadow-lg min-w-0">
-                    <span class="text-xs font-mono text-[#95D5B2] uppercase tracking-wider block">Telemetry Overview</span>
-                    <h4 class="text-lg font-bold text-white">Waiting for historical telemetry</h4>
-                    <p class="text-xs text-[#95D5B2]/90">Historical telemetry and trend summaries will appear once sufficient data is available.</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ========================================== -->
-    <!-- TAB CONTENT 4: DEVICE MANAGEMENT          -->
-    <!-- ========================================== -->
-    <div x-show="activeTab === 'devices'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
-        
-        <x-leaf.page-header 
-            title="ESP32 Hardware Devices & Relays" 
-            subtitle="Manage microcontrollers, pinout mappings, actuator relay switches, and HTTP API endpoints."
-            badge="{{ count($deviceCards) > 0 ? count($deviceCards).' Controllers Active' : 'Waiting for device...' }}"
-        />
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
-            @forelse ($deviceCards as $deviceCard)
-                <div class="p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0">
-                    <div class="flex items-center justify-between pb-4 border-b border-gray-100 min-w-0">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-12 h-12 rounded-2xl bg-[#2D6A4F]/10 text-[#2D6A4F] flex items-center justify-center text-xl font-bold shrink-0">
-                                📟
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="text-lg font-bold text-[#1B4332] truncate">{{ $deviceCard['name'] }}</h3>
-                                <p class="text-xs text-[#40916C] truncate">{{ $deviceCard['deviceId'] }}</p>
-                            </div>
-                        </div>
-                        <x-leaf.status-badge :type="$deviceCard['isOnline'] ? 'online' : 'offline'" :label="$deviceCard['isOnline'] ? 'Online' : 'Offline'" class="shrink-0" />
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 text-xs min-w-0">
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">Firmware</span>
-                            <span class="font-mono font-bold text-[#1B4332] truncate">{{ $deviceCard['firmware'] }}</span>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">Wi-Fi RSSI</span>
-                            <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceCard['wifiRssi'] }}</span>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">Uptime</span>
-                            <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceCard['uptime'] }}</span>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">Battery</span>
-                            <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceCard['battery'] }}</span>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">HTTP API</span>
-                            <span class="font-mono font-bold text-[#2D6A4F] truncate">{{ $deviceCard['transportStatus'] }}</span>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-[#F8FAF8] border border-gray-100 min-w-0">
-                            <span class="text-gray-500 block">Last Seen</span>
-                            <span class="font-mono font-bold text-[#1B4332] truncate">{{ $deviceCard['lastSeen'] }}</span>
-                        </div>
-                    </div>
-
-                </div>
-            @empty
-                <div class="p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0">
-                    <div class="text-sm font-medium text-[#1B4332]/70">Waiting for device...</div>
-                </div>
-            @endforelse
-        </div>
-
-    </div>
-
-    <!-- ========================================== -->
-    <!-- TAB CONTENT 5: ALERTS & LOGS              -->
-    <!-- ========================================== -->
-    <div x-show="activeTab === 'alerts'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
-        
-        <x-leaf.page-header 
-            title="Automation Alerts & System Logs" 
-            subtitle="Comprehensive log audit stream for environmental threshold triggers and HTTP API events."
-            badge="Live Feed"
-        />
-
-        <div class="space-y-4 min-w-0">
-            @forelse ($telemetryAlerts as $alert)
-                <x-leaf.alert-card 
-                    :title="$alert['title']"
-                    :message="$alert['message']"
-                    :time="$alert['time']"
-                    :severity="$alert['card_severity']"
-                    :read="$alert['acknowledged']"
-                    wire:key="telemetry-alert-{{ $alert['key'] }}"
-                    data-alert-key="{{ $alert['key'] }}"
-                    data-alert-severity="{{ $alert['severity'] }}"
-                    data-alert-timestamp="{{ $alert['timestamp'] }}"
-                    data-alert-sensor="{{ $alert['sensor'] }}"
-                    data-alert-icon="{{ $alert['icon'] }}"
-                    data-alert-acknowledged="{{ $alert['acknowledged'] ? 'true' : 'false' }}"
-                />
-            @empty
-                <x-leaf.alert-card 
-                    title="Waiting for sensor data..."
-                    message=""
-                    time=""
-                    severity="info"
-                    :read="true"
-                />
-            @endforelse
-        </div>
-
-    </div>
+   
 
     <!-- ========================================== -->
     <!-- TAB CONTENT 6: SYSTEM SETTINGS             -->
@@ -513,16 +323,16 @@
         
         <x-leaf.page-header 
             title="System Configurations & Target Setpoints" 
-            subtitle="Define target thresholds for hydroponic crop species, dosing intervals, and HTTP API connection settings."
+            subtitle="Define target thresholds for hydroponic environmental conditions and dosing intervals."
             badge="Lettuce Mode"
         />
 
         <div class="p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-6 min-w-0">
-            <h3 class="text-lg font-bold text-[#1B4332]">Target Environmental Setpoints</h3>
+            <h3 class="text-[7px] sm:text-lg font-bold text-[#1B4332]">Target Environmental Setpoints</h3>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-w-0">
                 <div class="space-y-2 min-w-0">
-                    <label class="block text-xs font-bold text-[#1B4332] uppercase">Target Water pH Min / Max</label>
+                    <label class="block text-[7px] sm:text-xs font-bold text-[#1B4332] uppercase">Target Water pH Min / Max</label>
                     <div class="flex gap-2">
                         <input type="text" value="{{ $phLowThreshold !== null ? $phLowThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
                         <input type="text" value="{{ $phHighThreshold !== null ? $phHighThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
@@ -530,7 +340,7 @@
                 </div>
 
                 <div class="space-y-2 min-w-0">
-                    <label class="block text-xs font-bold text-[#1B4332] uppercase">Target EC Range (mS/cm)</label>
+                    <label class="block text-[7px] sm:text-xs font-bold text-[#1B4332] uppercase">Target EC Range (mS/cm)</label>
                     <div class="flex gap-2">
                         <input type="text" value="{{ $ecLowThreshold !== null ? $ecLowThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
                         <input type="text" value="{{ $ecHighThreshold !== null ? $ecHighThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
@@ -538,7 +348,7 @@
                 </div>
 
                 <div class="space-y-2 min-w-0">
-                    <label class="block text-xs font-bold text-[#1B4332] uppercase">Air Temp Target (°C)</label>
+                    <label class="block text-[7px] sm:text-xs font-bold text-[#1B4332] uppercase">Air Temp Target (°C)</label>
                     <div class="flex gap-2">
                         <input type="text" value="{{ $temperatureLowThreshold !== null ? $temperatureLowThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
                         <input type="text" value="{{ $temperatureHighThreshold !== null ? $temperatureHighThreshold : 'Not available' }}" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-[#1B4332]" readonly>
@@ -547,30 +357,34 @@
             </div>
 
             <div class="pt-4 flex justify-end">
-                <button type="button" class="px-6 py-3 rounded-xl bg-[#2D6A4F] text-white font-bold text-xs hover:bg-[#1B4332] transition-colors shadow-md">Save Setpoints</button>
+                <button type="button" class="px-6 py-3 rounded-xl bg-[#2D6A4F] text-white font-bold text-[7px] sm:text-xs hover:bg-[#1B4332] transition-colors shadow-md">Save Setpoints</button>
             </div>
         </div>
 
     </div>
 
     <!-- ========================================== -->
-    <!-- TAB CONTENT 7: REPORTS & EXPORT            -->
+    <!-- TAB CONTENT 7: HISTORICAL SENSOR DATA       -->
     <!-- ========================================== -->
     <div x-show="activeTab === 'reports'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8 min-w-0">
         
         <x-leaf.page-header 
-            title="Telemetry Reports & Export" 
-            subtitle="Export telemetry history and sensor data trends as CSV for research and compliance."
+            title="Historical Sensor Data" 
+            subtitle="Review historical telemetry and sensor data trends."
             badge="Telemetry"
         />
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 lg:gap-6 min-w-0 items-start">
             <div class="xl:col-span-12 p-6 sm:p-8 rounded-3xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4 min-w-0 overflow-hidden flex flex-col justify-between">
-                <h3 class="text-lg font-bold text-[#1B4332]">Telemetry History & Sensor Data Trends</h3>
+                <h3 class="text-[7px] sm:text-lg font-bold text-[#1B4332]">Telemetry History & Sensor Data Trends</h3>
                 <div wire:ignore id="telemetryHistoryChart" class="w-full h-[260px] sm:h-[280px] lg:h-[320px] min-h-[260px] overflow-hidden relative">
-                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
-                        Waiting for telemetry data...
+                    <div x-show="!hasChartTelemetry" class="absolute inset-0 flex items-center justify-center text-[7px] sm:text-sm font-medium text-[#1B4332]/70 bg-white/80 z-10 pointer-events-none">
+                        No historical readings for this range.
                     </div>
+                    <button x-show="!isLive" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2" @click="goToLive()" type="button" class="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2D6A4F] text-white text-xs font-bold shadow-lg hover:bg-[#1B4332] transition-colors cursor-pointer">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Go to Live
+                    </button>
                 </div>
             </div>
 

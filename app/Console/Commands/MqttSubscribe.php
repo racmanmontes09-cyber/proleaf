@@ -30,7 +30,8 @@ class MqttSubscribe extends Command
     {
         $host = $this->option('host') ?: config('leaf.mqtt.host', '127.0.0.1');
         $port = (int) ($this->option('port') ?: config('leaf.mqtt.port', 1883));
-        $topic = $this->option('topic') ?: config('leaf.mqtt.topic', 'devices/+/telemetry');
+        $topic = $this->option('topic') ?: config('leaf.mqtt.topics.telemetry', 'leaf/devices/+/telemetry');
+        $statusTopic = config('leaf.mqtt.topics.status', 'leaf/devices/+/status');
         $clientId = $this->option('clientId') ?: config('leaf.mqtt.client_id', 'leaf-mqtt-subscriber-'.uniqid());
         $qos = (int) config('leaf.mqtt.qos', 0);
 
@@ -60,6 +61,9 @@ class MqttSubscribe extends Command
 
                 $client->subscribe($topic, function (string $topic, string $message, bool $retained, array $matched) {
                     $this->handleTelemetryMessage($topic, $message, $retained, $matched);
+                }, $qos);
+                $client->subscribe($statusTopic, function (string $topic, string $message, bool $retained, array $matched) {
+                    $this->handleStatusMessage($topic, $message, $retained, $matched);
                 }, $qos);
 
                 // Process network loop (blocking)
@@ -142,6 +146,28 @@ class MqttSubscribe extends Command
     }
 
     /**
+     * Handle device status messages so the dashboard online indicator tracks MQTT heartbeats.
+     *
+     * @param  array<int|string, mixed>  $matched
+     */
+    public function handleStatusMessage(string $topic, string $message, bool $retained = false, array $matched = []): void
+    {
+        $payload = json_decode($message, true);
+        if (! is_array($payload) || ($payload['status'] ?? null) !== 'online') {
+            return;
+        }
+
+        $deviceIdentifier = $this->extractDeviceIdentifier($topic, $payload);
+        if ($deviceIdentifier === null) {
+            return;
+        }
+
+        Device::query()
+            ->where('device_id', $deviceIdentifier)
+            ->update(['last_seen_at' => now()]);
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     private function extractDeviceIdentifier(string $topic, array $payload): ?string
@@ -157,7 +183,11 @@ class MqttSubscribe extends Command
 
         $parts = explode('/', trim($topic, '/'));
 
-        if (count($parts) >= 3 && $parts[0] === 'devices' && $parts[2] === 'telemetry' && $parts[1] !== '') {
+        if (count($parts) >= 3 && $parts[0] === 'leaf' && $parts[1] === 'devices' && in_array($parts[3] ?? null, ['telemetry', 'status'], true) && $parts[2] !== '') {
+            return $parts[2];
+        }
+
+        if (count($parts) >= 3 && $parts[0] === 'devices' && in_array($parts[2], ['telemetry', 'status'], true) && $parts[1] !== '') {
             return $parts[1];
         }
 

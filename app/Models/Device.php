@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\DeviceCommand;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class Device extends Model
@@ -15,6 +16,10 @@ class Device extends Model
     use HasFactory;
 
     private static array $tokenLookupCache = [];
+
+    public const TYPE_SENSOR = 'sensor';
+
+    public const TYPE_CAMERA = 'camera';
 
     public const STATUS_ACTIVE = 'active';
 
@@ -72,6 +77,11 @@ class Device extends Model
     public function telemetries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Telemetry::class);
+    }
+
+    public function greenhouse(): BelongsTo
+    {
+        return $this->belongsTo(Greenhouse::class);
     }
 
     public function deviceCommands(): HasMany
@@ -162,6 +172,6 @@ class Device extends Model
             return false;
         }
 
-        return $this->last_seen_at->diffInSeconds(now()) <= 30;
+        return $this->last_seen_at->diffInSeconds(now()) <= config('leaf.device_status.online_grace_seconds', 10);
     }
 }

@@ -21,12 +21,16 @@ class DashboardService
     /**
      * Load and assemble all data required for the main DeviceStatus Dashboard.
      */
-    public function getDashboardData(string $alertSeverityFilter = 'all', bool $includeCharts = true): array
-    {
+    public function getDashboardData(
+        string $alertSeverityFilter = 'all',
+        bool $includeCharts = true,
+        ?\App\Models\Greenhouse $greenhouse = null,
+        ?Device $targetDevice = null
+    ): array {
         $thresholds = $this->thresholdService->getAllThresholds();
         $devices = $this->telemetryService->getDevicesWithTelemetries(2);
 
-        $device = $this->resolveDashboardDevice($devices);
+        $device = $targetDevice ?? $this->resolveDashboardDevice($devices, $greenhouse);
         $telemetryHistory = $includeCharts ? $this->getTelemetryHistoryForDashboard($device) : collect();
         $latestTelemetry = $includeCharts && $telemetryHistory->isNotEmpty()
             ? $telemetryHistory->last()
@@ -96,8 +100,8 @@ class DashboardService
         // Water Flow
         $wFlowVal = $latestTelemetry?->water_flow;
         $waterFlowValue = $wFlowVal !== null ? number_format((float) $wFlowVal, 1) : '--';
-        $waterFlowStatusLabel = $this->thresholdService->resolveStatus($wFlowVal !== null ? (float) $wFlowVal : null, $thresholds['waterFlowLow'], $thresholds['waterFlowHigh'], 'LOW FLOW', 'HIGH FLOW');
-        $waterFlowStatusType = $this->thresholdService->resolveStatusType($wFlowVal !== null ? (float) $wFlowVal : null, $thresholds['waterFlowLow'], $thresholds['waterFlowHigh']);
+        $waterFlowStatusLabel = $wFlowVal !== null ? 'ONLINE' : 'OFFLINE';
+        $waterFlowStatusType = $wFlowVal !== null ? 'online' : 'danger';
 
         // Chart Data & Metrics
         $telemetryOverviewSeries = $includeCharts ? $this->telemetryService->buildTelemetryOverviewSeries($telemetryHistory) : [];
@@ -252,8 +256,28 @@ class DashboardService
         return $this->telemetryService->getTelemetryHistory($device, $limit);
     }
 
-    protected function resolveDashboardDevice(Collection $devices): ?Device
+    protected function resolveDashboardDevice(Collection $devices, ?\App\Models\Greenhouse $greenhouse = null): ?Device
     {
+        if ($greenhouse !== null) {
+            $ghDevice = $greenhouse->devices()->with('latestTelemetry')->latest('last_seen_at')->first()
+                ?? $greenhouse->device;
+            if ($ghDevice instanceof Device) {
+                return $ghDevice;
+            }
+        }
+
+        $user = auth()->user();
+        if ($user && $user->isFarmer() && ! $user->isSuperAdmin()) {
+            $farmerGh = $user->greenhouses()->with('devices.latestTelemetry')->first() ?? $user->greenhouse;
+            if ($farmerGh) {
+                $farmerDevice = $farmerGh->devices()->with('latestTelemetry')->latest('last_seen_at')->first()
+                    ?? $farmerGh->device;
+                if ($farmerDevice instanceof Device) {
+                    return $farmerDevice;
+                }
+            }
+        }
+
         $configuredDeviceId = (int) config('leaf.dashboard.device_db_id', 358);
 
         if ($configuredDeviceId > 0) {

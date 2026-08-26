@@ -19,6 +19,7 @@ class DeviceController extends Controller
 
         $validated = $request->validated();
         $heartbeatFields = [
+            'type',
             'name',
             'firmware_version',
             'local_ip_address',

@@ -203,14 +203,6 @@ class Telemetry extends Model
     }
 
     /**
-     * Scope query for historical reports (range filtered, chronologically sorted).
-     */
-    public function scopeHistoricalReport(Builder $query, DateTimeInterface|string $start, DateTimeInterface|string $end): Builder
-    {
-        return $query->between($start, $end)->orderBy('measured_at', 'asc');
-    }
-
-    /**
      * Scope query to get the latest telemetry record for each device.
      */
     public function scopeLatestPerDevice(Builder $query): Builder
