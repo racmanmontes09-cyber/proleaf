@@ -18,9 +18,8 @@ class AuthenticationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
-        Role::firstOrCreate(['slug' => 'farmer'], ['name' => 'Farmer']);
-        Role::firstOrCreate(['slug' => 'researcher'], ['name' => 'Researcher']);
+        Role::firstOrCreate(['slug' => 'admin'], ['name' => 'Admin']);
+        Role::firstOrCreate(['slug' => 'viewer'], ['name' => 'Viewer']);
     }
 
     public function test_login_screen_can_be_rendered(): void
@@ -40,28 +39,28 @@ class AuthenticationTest extends TestCase
     public function test_non_admin_cannot_access_user_management(): void
     {
         $user = User::factory()->create();
-        $user->assignRole('farmer');
+        $user->assignRole('viewer');
 
         $this->actingAs($user)
             ->get('/admin/users')
             ->assertForbidden();
     }
 
-    public function test_super_admin_can_create_user_with_selected_role(): void
+    public function test_admin_can_create_user_with_selected_role(): void
     {
         $admin = User::factory()->create();
-        $admin->assignRole('super-admin');
-        $role = Role::where('slug', 'researcher')->firstOrFail();
+        $admin->assignRole('admin');
+        $role = Role::where('slug', 'viewer')->firstOrFail();
 
         Volt::actingAs($admin)->test('admin.users')
-            ->set('name', 'Campus Researcher')
-            ->set('email', 'researcher@ispsc.edu.ph')
+            ->set('name', 'Campus Viewer')
+            ->set('email', 'viewer@ispsc.edu.ph')
             ->set('password', 'temporary-password')
             ->set('roleId', $role->id)
             ->call('save');
 
-        $user = User::where('email', 'researcher@ispsc.edu.ph')->firstOrFail();
-        $this->assertTrue($user->hasRole('researcher'));
+        $user = User::where('email', 'viewer@ispsc.edu.ph')->firstOrFail();
+        $this->assertTrue($user->hasRole('viewer'));
         $this->assertTrue($user->is_active);
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('temporary-password', $user->password));
     }
@@ -96,10 +95,10 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_super_admin_is_redirected_to_admin_dashboard(): void
+    public function test_admin_is_redirected_to_admin_dashboard(): void
     {
         $user = User::factory()->create();
-        $user->assignRole('super-admin');
+        $user->assignRole('admin');
 
         $component = Volt::test('pages.auth.login')
             ->set('form.email', $user->email)
@@ -114,10 +113,10 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_farmer_is_redirected_to_farmer_dashboard(): void
+    public function test_viewer_is_redirected_to_regular_dashboard(): void
     {
         $user = User::factory()->create();
-        $user->assignRole('farmer');
+        $user->assignRole('viewer');
 
         $component = Volt::test('pages.auth.login')
             ->set('form.email', $user->email)
@@ -175,9 +174,9 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_super_admin_and_farmer_logout_through_the_same_flow(): void
+    public function test_admin_and_viewer_logout_through_the_same_flow(): void
     {
-        foreach (['super-admin', 'farmer'] as $roleSlug) {
+        foreach (['admin', 'viewer'] as $roleSlug) {
             $user = User::factory()->create();
             $user->assignRole($roleSlug);
 

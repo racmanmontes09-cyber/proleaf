@@ -281,6 +281,11 @@ class TelemetryService
                 'wifi_rssi',
                 'uptime_seconds',
                 'free_heap',
+                'actuator_cooling_fan',
+                'actuator_nutrient_pump_a',
+                'actuator_nutrient_pump_b',
+                'actuator_ph_up_pump',
+                'actuator_ph_down_pump',
                 'last_seen_at',
             ])
             ->with(['latestTelemetry' => function ($query) {
@@ -555,6 +560,9 @@ class TelemetryService
             ['name' => 'Water pH', 'data' => $history->pluck('ph')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
             ['name' => 'Water Temp (°C)', 'data' => $history->pluck('water_temperature')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
             ['name' => 'Nutrient EC (mS)', 'data' => $history->pluck('ec')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
+            ['name' => 'Air Temp (°C)', 'data' => $history->pluck('air_temperature')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
+            ['name' => 'Water Flow (L/min)', 'data' => $history->pluck('water_flow')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
+            ['name' => 'Water Level (%)', 'data' => $history->pluck('water_level')->filter(fn ($v) => $v !== null)->map(fn ($v) => $this->normalizeWaterLevelValue($v)['value'])->values()->all()],
         ];
     }
 
@@ -573,7 +581,6 @@ class TelemetryService
     {
         return [
             ['name' => 'Air Temp (°C)', 'type' => 'column', 'data' => $history->pluck('air_temperature')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
-            ['name' => 'Humidity (%)', 'type' => 'line', 'data' => $history->pluck('humidity')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
             ['name' => 'Water Flow (L/min)', 'type' => 'line', 'data' => $history->pluck('water_flow')->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values()->all()],
         ];
     }

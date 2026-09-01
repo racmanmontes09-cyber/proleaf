@@ -67,9 +67,53 @@ class SystemSetting extends Model
         ], $attributes));
         $setting->save();
 
-        static::flushCache();
-
         return $setting;
+    }
+
+    /**
+     * Batch store setting values with one upsert and one cache flush.
+     *
+     * @param  array<string, mixed>  $values
+     * @param  array<string, array<string, mixed>>  $definitions
+     */
+    public static function putMany(array $values, array $definitions = []): void
+    {
+        $now = now();
+        $rows = [];
+
+        foreach ($values as $key => $value) {
+            $key = trim((string) $key);
+            if ($key === '') {
+                continue;
+            }
+
+            $attributes = $definitions[$key] ?? [];
+            $rows[] = [
+                'key' => $key,
+                'value' => $value,
+                'type' => $attributes['type'] ?? 'string',
+                'group' => $attributes['group'] ?? 'general',
+                'label' => $attributes['label'] ?? $key,
+                'description' => $attributes['description'] ?? null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if ($rows === []) {
+            return;
+        }
+
+        static::query()->upsert($rows, ['key'], [
+            'value',
+            'type',
+            'group',
+            'label',
+            'description',
+            'updated_at',
+        ]);
+
+        static::flushCache();
     }
 
     /**
@@ -78,5 +122,6 @@ class SystemSetting extends Model
     public static function flushCache(): void
     {
         Cache::forget('system_settings_dict');
+        Cache::forget('device.heartbeat_interval_seconds');
     }
 }

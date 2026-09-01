@@ -6,7 +6,7 @@
             <div class="min-w-0 space-y-2">
                 <p class="section-kicker">Project L.E.A.F.</p>
                 <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-extrabold tracking-tight text-[#1B4332] sm:text-3xl">{{ $title }}</h1>
+                    <h1 class="text-2xl font-extrabold tracking-normal leading-tight lg:text-4xl text-[#1B4332] dark:text-slate-100 sm:text-3xl">{{ $title }}</h1>
                 </div>
                 @if ($description)
                     <p class="section-description max-w-3xl">{{ $description }}</p>

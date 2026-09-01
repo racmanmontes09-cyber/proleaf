@@ -26,7 +26,7 @@ class UserPreference extends Model
         return [
             'kpi_cards' => [
                 'air_temperature' => true,
-                'humidity' => true,
+                'humidity' => false,
                 'water_temperature' => true,
                 'ph' => true,
                 'ec' => true,
@@ -54,6 +54,9 @@ class UserPreference extends Model
         $dashboard = $pref->dashboard;
         unset($dashboard['appearance']);
 
-        return array_replace_recursive(static::defaults(), $dashboard);
+        $merged = array_replace_recursive(static::defaults(), $dashboard);
+        $merged['kpi_cards']['humidity'] = false;
+
+        return $merged;
     }
 }

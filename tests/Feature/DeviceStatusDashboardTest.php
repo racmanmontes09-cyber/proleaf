@@ -167,6 +167,8 @@ class DeviceStatusDashboardTest extends TestCase
         $this->assertStringContainsString('air_temperature', $xData);
         $this->assertStringContainsString('Water pH', $xData);
         $this->assertStringContainsString('analyticsSeries', $xData);
+        $this->assertStringContainsString('Water Flow (L/min)', $html);
+        $this->assertStringContainsString('Water Level (%)', $html);
         $this->assertStringContainsString('kpiValue', $html);
         $this->assertStringContainsString('dashboard-chart-data-updated', $html);
         $this->assertStringContainsString('dashboard-device-selected', $html);
@@ -224,5 +226,36 @@ class DeviceStatusDashboardTest extends TestCase
             ->assertSet('deviceNameLabel', 'Waiting for device name...')
             ->assertSet('lastSeenLabel', 'Waiting for device...')
             ->assertSet('alertBadgeLabel', 'Waiting');
+    }
+
+    public function test_dashboard_hides_humidity_kpi_and_shows_all_actuators_by_default(): void
+    {
+        $device = Device::create([
+            'device_id' => 'LEAF-ESP32-01',
+            'name' => 'ESP32-01',
+            'last_seen_at' => now(),
+        ]);
+
+        $device->telemetries()->create([
+            'air_temperature' => 24.8,
+            'humidity' => 68,
+            'water_temperature' => 22.4,
+            'ph' => 6.3,
+            'ec' => 1.9,
+            'water_flow' => 2.4,
+            'water_level' => 84,
+        ]);
+
+        $html = Livewire::test(DeviceStatus::class)->html();
+
+        $this->assertStringNotContainsString('Air Humidity', $html);
+        $this->assertStringNotContainsString('Humidity (%)', $html);
+        // All 5 actuators are now shown by default
+        $this->assertStringContainsString('Nutrient Dosing Pump A', $html);
+        $this->assertStringContainsString('Nutrient Dosing Pump B', $html);
+        $this->assertStringContainsString('pH Up Dosing Pump', $html);
+        $this->assertStringContainsString('pH Down Dosing Pump', $html);
+        $this->assertStringContainsString('VPD Intake Cooling Fan', $html);
+        $this->assertStringContainsString('Air Temp', $html);
     }
 }

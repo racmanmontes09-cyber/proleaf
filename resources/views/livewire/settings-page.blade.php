@@ -1,155 +1,71 @@
 <div class="space-y-6">
     @if ($message)
-        <div class="rounded-2xl border {{ $saved ? 'border-[#2D6A4F]/20 bg-[#2D6A4F]/10 text-[#1B4332]' : 'border-rose-200 bg-rose-50 text-rose-700' }} px-4 py-3 text-sm">
+        <div class="rounded-2xl border {{ $saved ? 'border-[#2D6A4F]/20 dark:border-white/15 bg-[#2D6A4F]/10 dark:bg-white/10 text-[#1B4332] dark:text-slate-100' : 'border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400' }} px-4 py-3 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5">
             {{ $message }}
         </div>
     @endif
 
-    <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-4 shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="text-lg font-semibold text-[#1B4332]">System Settings</h2>
-                <p class="text-sm text-[#2D6A4F]/80">Configure thresholds, automation, notifications, device defaults, and device behavior.</p>
-            </div>
-            <div class="flex gap-2">
-                <button wire:click="save" class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white">Save Changes</button>
-                <button wire:click="resetToDefaults" class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Reset to Defaults</button>
+    <form wire:submit.prevent="save" class="space-y-6">
+        <div class="rounded-2xl border border-[#2D6A4F]/10 dark:border-white/10 bg-white dark:bg-[#1E293B] p-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <x-leaf.page-header
+                    title="System Parameters"
+                    subtitle="Approved thresholds and device timing values for NFT lettuce monitoring."
+                    badge="Admin"
+                />
+                <div class="flex gap-2">
+                    <button type="submit" class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 font-semibold text-white">Save Changes</button>
+                    <button type="button" wire:click="resetToDefaults" class="rounded-xl border border-[#2D6A4F]/20 dark:border-white/15 bg-white dark:bg-[#1E293B] px-4 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 font-semibold text-[#2D6A4F] dark:text-leaf-300">Reset to Defaults</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="space-y-4">
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Sensor Thresholds</h3>
-            <p class="mt-1 text-sm text-[#2D6A4F]/80">Configure the minimum and maximum bounds for the telemetry values emitted by your devices.</p>
+        <div class="rounded-2xl border border-[#2D6A4F]/10 dark:border-white/10 bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+            <h3 class="text-lg lg:text-xl lg:leading-7 max-sm:text-sm font-semibold text-[#1B4332] dark:text-slate-100">Sensor Thresholds</h3>
             <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 @php($thresholds = [
-                    ['key' => 'temperature', 'label' => 'Air Temperature', 'unit' => '°C', 'min' => 'temperature_min', 'max' => 'temperature_max'],
-                    ['key' => 'humidity', 'label' => 'Humidity', 'unit' => '%', 'min' => 'humidity_min', 'max' => 'humidity_max'],
-                    ['key' => 'water_temperature', 'label' => 'Water Temperature', 'unit' => '°C', 'min' => 'water_temperature_min', 'max' => 'water_temperature_max'],
-                    ['key' => 'ph', 'label' => 'pH', 'unit' => '', 'min' => 'ph_min', 'max' => 'ph_max'],
-                    ['key' => 'ec', 'label' => 'EC', 'unit' => 'mS/cm', 'min' => 'ec_min', 'max' => 'ec_max'],
-                    ['key' => 'water_flow', 'label' => 'Water Flow', 'unit' => 'L/min', 'min' => 'water_flow_min', 'max' => 'water_flow_max'],
-                    ['key' => 'water_level', 'label' => 'Water Level', 'unit' => '%', 'min' => 'water_level_min', 'max' => 'water_level_max'],
+                    ['label' => 'Air Temperature', 'unit' => '°C', 'min' => 'temperature_min', 'max' => 'temperature_max'],
+                    ['label' => 'pH', 'unit' => 'pH', 'min' => 'ph_min', 'max' => 'ph_max'],
+                    ['label' => 'EC', 'unit' => 'mS/cm', 'min' => 'ec_min', 'max' => 'ec_max'],
                 ])
 
                 @foreach ($thresholds as $threshold)
-                    <div class="rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4">
-                        <h4 class="text-sm font-semibold text-[#1B4332]">{{ $threshold['label'] }}</h4>
-                        <p class="mt-1 text-xs text-[#2D6A4F]/70">Minimum and maximum limits for {{ strtolower($threshold['label']) }}.</p>
+                    <div class="rounded-2xl border border-[#2D6A4F]/10 dark:border-white/10 bg-[#F8FAF8] dark:bg-[#0F172A] p-4">
+                        <h4 class="text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 font-semibold text-[#1B4332] dark:text-slate-100">{{ $threshold['label'] }}</h4>
                         <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                            <label class="text-xs font-semibold text-[#1B4332]">
+                            <label class="text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 font-semibold text-[#1B4332] dark:text-slate-100">
                                 <span>Minimum</span>
-                                <input type="number" step="any" wire:model="settings.{{ $threshold['min'] }}" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
+                                <input type="number" step="any" wire:model="settings.{{ $threshold['min'] }}" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 dark:border-white/15 bg-white dark:bg-[#0F172A] px-3 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 text-[#1B4332] dark:text-slate-200" />
+                                @error('settings.'.$threshold['min']) <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-rose-600 dark:text-rose-400">{{ $message }}</span> @enderror
                             </label>
-                            <label class="text-xs font-semibold text-[#1B4332]">
+                            <label class="text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 font-semibold text-[#1B4332] dark:text-slate-100">
                                 <span>Maximum</span>
-                                <input type="number" step="any" wire:model="settings.{{ $threshold['max'] }}" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
+                                <input type="number" step="any" wire:model="settings.{{ $threshold['max'] }}" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 dark:border-white/15 bg-white dark:bg-[#0F172A] px-3 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 text-[#1B4332] dark:text-slate-200" />
+                                @error('settings.'.$threshold['max']) <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-rose-600 dark:text-rose-400">{{ $message }}</span> @enderror
                             </label>
                         </div>
-                        <p class="mt-2 text-[11px] text-[#2D6A4F]/70">Unit: {{ $threshold['unit'] ?: 'standard' }}</p>
+                        <p class="mt-2 text-[11px] lg:text-xs lg:leading-4 max-sm:text-[12px] max-sm:leading-4 text-[#2D6A4F]/70 dark:text-leaf-300/70">Unit: {{ $threshold['unit'] }}</p>
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Automation</h3>
+        <div class="rounded-2xl border border-[#2D6A4F]/10 dark:border-white/10 bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+            <h3 class="text-lg lg:text-xl lg:leading-7 max-sm:text-sm font-semibold text-[#1B4332] dark:text-slate-100">Automation Timing</h3>
             <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Sensor Upload Interval (seconds)</span>
-                    <input type="number" wire:model="settings.sensor_upload_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
+                <label class="text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 font-semibold text-[#1B4332] dark:text-slate-100">
+                    <span>Sensor Upload Interval</span>
+                    <input type="number" wire:model="settings.sensor_upload_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 dark:border-white/15 bg-white dark:bg-[#0F172A] px-3 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 text-[#1B4332] dark:text-slate-200" />
+                    <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-[#2D6A4F]/70 dark:text-leaf-300/70">Seconds</span>
+                    @error('settings.sensor_upload_interval') <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-rose-600 dark:text-rose-400">{{ $message }}</span> @enderror
                 </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
+                <label class="text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 font-semibold text-[#1B4332] dark:text-slate-100">
                     <span>Heartbeat Interval</span>
-                    <input type="number" wire:model="settings.heartbeat_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Auto Refresh Interval</span>
-                    <input type="number" wire:model="settings.auto_refresh_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Fan Activation Temperature</span>
-                    <input type="number" step="any" wire:model="settings.fan_activation_temperature" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Pump Delay</span>
-                    <input type="number" wire:model="settings.pump_delay" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Automatic Dosing</span>
-                    <select wire:model="settings.automatic_dosing" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Automatic Irrigation</span>
-                    <select wire:model="settings.automatic_irrigation" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]">
-                        <option value="1">Enabled</option>
-                        <option value="0">Disabled</option>
-                    </select>
+                    <input type="number" wire:model="settings.heartbeat_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 dark:border-white/15 bg-white dark:bg-[#0F172A] px-3 py-2 text-sm lg:text-base lg:leading-6 max-sm:text-[13px] max-sm:leading-5 text-[#1B4332] dark:text-slate-200" />
+                    <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-[#2D6A4F]/70 dark:text-leaf-300/70">Seconds</span>
+                    @error('settings.heartbeat_interval') <span class="mt-1 block text-xs lg:text-sm lg:leading-5 max-sm:text-[12px] max-sm:leading-5 text-rose-600 dark:text-rose-400">{{ $message }}</span> @enderror
                 </label>
             </div>
         </div>
-
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Device Defaults</h3>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Default Device Name</span>
-                    <input type="text" wire:model="settings.default_device_name" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Default Upload Interval</span>
-                    <input type="number" wire:model="settings.default_upload_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-                <label class="text-sm font-semibold text-[#1B4332]">
-                    <span>Default Heartbeat Interval</span>
-                    <input type="number" wire:model="settings.default_heartbeat_interval" class="mt-1 w-full rounded-xl border border-[#2D6A4F]/20 bg-white px-3 py-2 text-sm text-[#1B4332]" />
-                </label>
-            </div>
-        </div>
-
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Maintenance</h3>
-            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                <div class="rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4 text-sm text-[#1B4332]">
-                    <p class="font-semibold">Database Information</p>
-                    <p class="mt-2 text-[#2D6A4F]/80">System settings storage is backed by the dedicated system_settings table.</p>
-                </div>
-                <div class="rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4 text-sm text-[#1B4332]">
-                    <p class="font-semibold">Telemetry Count</p>
-                    <p class="mt-2 text-[#2D6A4F]/80">{{ $telemetryCount }}</p>
-                </div>
-                <div class="rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4 text-sm text-[#1B4332]">
-                    <p class="font-semibold">Device Count</p>
-                    <p class="mt-2 text-[#2D6A4F]/80">{{ $deviceCount }}</p>
-                </div>
-                <div class="rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4 text-sm text-[#1B4332]">
-                    <p class="font-semibold">Storage Usage</p>
-                    <p class="mt-2 text-[#2D6A4F]/80">{{ $storageUsage }}</p>
-                </div>
-            </div>
-            <div class="mt-4 flex flex-wrap gap-2">
-                <button wire:click="resetToDefaults" class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Reset to Defaults</button>
-            </div>
-        </div>
-
-        <div class="glass-card rounded-2xl border border-[#2D6A4F]/10 p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-[#1B4332]">Account</h3>
-            <div class="mt-4 rounded-2xl border border-[#2D6A4F]/10 bg-[#F8FAF8] p-4 text-sm text-[#1B4332]">
-                <p class="font-semibold">Authenticated User</p>
-                <p class="mt-2 text-[#2D6A4F]/80">{{ $user->name }}</p>
-                <p class="mt-1 text-[#2D6A4F]/80">{{ $user->email }}</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                    @php($profileRoute = Route::has('profile') ? route('profile') : null)
-                    @if ($profileRoute)
-                        <a href="{{ $profileRoute }}" wire:navigate class="rounded-xl bg-[#2D6A4F] px-4 py-2 text-sm font-semibold text-white">Profile</a>
-                    @endif
-                    <a href="{{ route('password.request') }}" class="rounded-xl border border-[#2D6A4F]/20 bg-white px-4 py-2 text-sm font-semibold text-[#2D6A4F]">Password</a>
-                </div>
-            </div>
-        </div>
-    </div>
+    </form>
 </div>

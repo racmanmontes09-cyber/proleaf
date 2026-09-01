@@ -36,7 +36,7 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div class="min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8]">
+<div class="min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8] dark:bg-[#0F172A]">
 
     <!-- ========================================== -->
     <!-- LEFT SIDE: BRANDING & DASHBOARD PREVIEW (45%) -->
@@ -51,12 +51,12 @@ new #[Layout('layouts.guest')] class extends Component
         <div class="relative z-10">
             <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-3 group focus:outline-none">
                 <div class="w-10 h-10 rounded-xl bg-white/90 border border-white/20 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-                    <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
+                    <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    <span class="text-xl font-extrabold tracking-normal text-white flex items-center gap-2">
                         Project L.E.A.F.
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#95D5B2]/20 text-[#95D5B2] border border-[#95D5B2]/30">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] lg:text-xs lg:leading-4 font-semibold bg-[#95D5B2]/20 text-[#95D5B2] border border-[#95D5B2]/30">
                             Operator Account
                         </span>
                     </span>
@@ -68,11 +68,11 @@ new #[Layout('layouts.guest')] class extends Component
         <div class="relative z-10 my-auto space-y-8 py-8">
             
             <div class="space-y-3">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#95D5B2] text-xs font-semibold border border-white/10 backdrop-blur-md">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#95D5B2] text-xs lg:text-sm lg:leading-5 font-semibold border border-white/10 backdrop-blur-md">
                     <span class="w-2 h-2 rounded-full bg-[#95D5B2] animate-pulse"></span>
                     Farm Management Registration
                 </div>
-                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-normal text-white leading-tight">
                     An IoT-Based Hydroponic Cultivation System
                 </h1>
                 <p class="text-sm sm:text-base text-[#95D5B2]/90 leading-relaxed font-normal">
@@ -83,38 +83,38 @@ new #[Layout('layouts.guest')] class extends Component
             <!-- Glassmorphism Telemetry & Hydroponic Preview Card -->
             <div class="p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/15 shadow-2xl space-y-5">
                 
-                <div class="flex items-center justify-between pb-3 border-b border-white/10 text-xs">
+                <div class="flex items-center justify-between pb-3 border-b border-white/10 text-xs lg:text-sm lg:leading-5">
                     <div class="flex items-center gap-2 font-mono text-[#95D5B2]">
                         <span class="w-2 h-2 rounded-full bg-[#95D5B2] animate-ping"></span>
                         ESP32 NODE ACTIVE
                     </div>
-                    <span class="text-[11px] px-2 py-0.5 rounded bg-white/10 text-white font-mono">
+                    <span class="text-[11px] lg:text-xs lg:leading-4 px-2 py-0.5 rounded bg-white/10 text-white font-mono">
                         Lactuca sativa
                     </span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="grid grid-cols-2 gap-3 text-xs lg:text-sm lg:leading-5">
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Air Temp</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Air Temp</span>
                         <span class="text-base font-bold text-white">24.2 °C</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Solution pH</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Solution pH</span>
                         <span class="text-base font-bold text-white">6.20 pH</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Nutrient EC</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Nutrient EC</span>
                         <span class="text-base font-bold text-white">1.82 mS</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Water Tank</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Water Tank</span>
                         <span class="text-base font-bold text-white">88 %</span>
                     </div>
                 </div>
 
                 <!-- Sparkline Visual -->
                 <div class="pt-1">
-                    <div class="flex items-center justify-between text-[10px] font-mono text-[#95D5B2] mb-1">
+                    <div class="flex items-center justify-between text-[10px] lg:text-xs lg:leading-4 font-mono text-[#95D5B2] mb-1">
                         <span>AUTOMATED NUTRIENT DOSING</span>
                         <span>ACTIVE CYCLE</span>
                     </div>
@@ -130,7 +130,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <!-- Left Side Footer -->
-        <div class="relative z-10 text-xs text-[#95D5B2]/70 flex items-center justify-between pt-6 border-t border-white/10">
+        <div class="relative z-10 text-xs lg:text-sm lg:leading-5 text-[#95D5B2]/70 flex items-center justify-between pt-6 border-t border-white/10">
             <span>© 2026 Project L.E.A.F.</span>
             <span>Project L.E.A.F. • Livewire 3</span>
         </div>
@@ -147,28 +147,28 @@ new #[Layout('layouts.guest')] class extends Component
             <!-- Mobile Brand Header (Visible only on smaller screens) -->
             <div class="lg:hidden text-center space-y-2">
                 <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 flex items-center justify-center overflow-hidden shadow-md">
-                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
+                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 dark:border-white/10 flex items-center justify-center overflow-hidden shadow-md">
+                        <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                     </div>
-                    <span class="text-2xl font-extrabold text-[#1B4332]">Project L.E.A.F.</span>
+                    <span class="text-2xl font-extrabold text-[#1B4332] dark:text-slate-100">Project L.E.A.F.</span>
                 </a>
-                <p class="text-xs text-[#40916C] font-semibold uppercase tracking-wider">
+                <p class="text-xs text-[#40916C] font-semibold uppercase tracking-normal sm:tracking-wider">
                     IoT-Based Hydroponic Cultivation System
                 </p>
             </div>
 
             <!-- Registration Card Wrapper -->
-            <div class="p-8 sm:p-10 rounded-3xl bg-white/90 backdrop-blur-xl border border-[#2D6A4F]/12 shadow-2xl shadow-emerald-950/5 space-y-6">
+            <div class="p-8 sm:p-10 rounded-3xl bg-white/90 dark:bg-[#1E293B]/90 backdrop-blur-xl border border-[#2D6A4F]/12 dark:border-white/10 shadow-2xl shadow-emerald-950/5 space-y-6">
                 
                 <!-- Card Header -->
                 <div class="space-y-2 text-left">
-                    <div class="hidden lg:flex items-center gap-2 text-xs font-bold text-[#2D6A4F] uppercase tracking-wider">
+                    <div class="hidden lg:flex items-center gap-2 text-xs lg:text-sm lg:leading-5 font-bold text-[#2D6A4F] dark:text-leaf-300 uppercase tracking-normal sm:tracking-wider">
                         🌱 Project L.E.A.F.
                     </div>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-[#1B4332] tracking-tight">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold leading-tight text-[#1B4332] dark:text-slate-100 tracking-normal">
                         Create Account
                     </h2>
-                    <p class="text-sm text-[#1B4332]/70">
+                    <p class="text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 text-[#1B4332]/70 dark:text-slate-400">
                         Register to access the hydroponic monitoring dashboard.
                     </p>
                 </div>
@@ -182,11 +182,11 @@ new #[Layout('layouts.guest')] class extends Component
                     
                     <!-- Name Field -->
                     <div class="space-y-1.5">
-                        <label for="name" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="name" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Full Name
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- User Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -201,19 +201,19 @@ new #[Layout('layouts.guest')] class extends Component
                                 autofocus 
                                 autocomplete="name"
                                 placeholder="John Doe"
-                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                         </div>
-                        <x-input-error :messages="$errors->get('name')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
                     <!-- Email Field -->
                     <div class="space-y-1.5">
-                        <label for="email" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="email" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Email Address
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- Mail Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -227,19 +227,19 @@ new #[Layout('layouts.guest')] class extends Component
                                 required 
                                 autocomplete="username"
                                 placeholder="name@farm.com"
-                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                         </div>
-                        <x-input-error :messages="$errors->get('email')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
                     <!-- Password Field -->
                     <div class="space-y-1.5">
-                        <label for="password" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="password" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Password
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- Lock Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -253,12 +253,12 @@ new #[Layout('layouts.guest')] class extends Component
                                 required 
                                 autocomplete="new-password"
                                 placeholder="••••••••"
-                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                             <button 
                                 type="button" 
                                 @click="showPass = !showPass" 
-                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-[#2D6A4F] focus:outline-none"
+                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 dark:text-slate-500 hover:text-[#2D6A4F] focus:outline-none"
                                 title="Toggle password visibility"
                             >
                                 <svg x-show="!showPass" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,16 +270,16 @@ new #[Layout('layouts.guest')] class extends Component
                                 </svg>
                             </button>
                         </div>
-                        <x-input-error :messages="$errors->get('password')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('password')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
                     <!-- Confirm Password Field -->
                     <div class="space-y-1.5">
-                        <label for="password_confirmation" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="password_confirmation" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Confirm Password
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- Lock Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -293,12 +293,12 @@ new #[Layout('layouts.guest')] class extends Component
                                 required 
                                 autocomplete="new-password"
                                 placeholder="••••••••"
-                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                             <button 
                                 type="button" 
                                 @click="showConfirmPass = !showConfirmPass" 
-                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-[#2D6A4F] focus:outline-none"
+                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 dark:text-slate-500 hover:text-[#2D6A4F] focus:outline-none"
                                 title="Toggle password visibility"
                             >
                                 <svg x-show="!showConfirmPass" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,14 +310,14 @@ new #[Layout('layouts.guest')] class extends Component
                                 </svg>
                             </button>
                         </div>
-                        <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
                     <!-- Create Account Submit Button -->
                     <div class="pt-2">
                         <button 
                             type="submit" 
-                            class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2"
+                            class="w-full py-3.5 px-6 rounded-xl text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2"
                         >
                             <span wire:loading.remove class="flex items-center gap-2">
                                 Create Account
@@ -338,11 +338,11 @@ new #[Layout('layouts.guest')] class extends Component
                 </form>
 
                 <!-- Navigation Links Row -->
-                <div class="pt-6 border-t border-[#2D6A4F]/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div class="pt-6 border-t border-[#2D6A4F]/10 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5">
                     <a 
                         href="{{ route('login') }}" 
                         wire:navigate 
-                        class="inline-flex items-center font-semibold text-[#2D6A4F] hover:text-[#1B4332] transition-colors"
+                        class="inline-flex items-center font-semibold text-[#2D6A4F] dark:text-leaf-300 hover:text-[#1B4332] transition-colors"
                     >
                         Already registered? Sign In
                     </a>
@@ -350,7 +350,7 @@ new #[Layout('layouts.guest')] class extends Component
                     <a 
                         href="{{ url('/') }}" 
                         wire:navigate 
-                        class="inline-flex items-center font-semibold text-[#1B4332]/70 hover:text-[#2D6A4F] transition-colors gap-1.5 group"
+                        class="inline-flex items-center font-semibold text-[#1B4332]/70 dark:text-slate-400 hover:text-[#2D6A4F] transition-colors gap-1.5 group"
                     >
                         <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

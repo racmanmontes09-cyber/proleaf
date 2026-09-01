@@ -5,6 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem('leaf-theme');
+                    var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.classList.toggle('dark', dark);
+                } catch (e) {}
+            })();
+        </script>
+
         <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
         <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
@@ -16,8 +26,6 @@
             $pageTitles = [
                 'login' => 'Sign In | Project L.E.A.F.',
                 'register' => 'Sign Up | Project L.E.A.F.',
-                'password.request' => 'Forgot Password | Project L.E.A.F.',
-                'password.reset' => 'Reset Password | Project L.E.A.F.',
                 'verification.notice' => 'Email Verification | Project L.E.A.F.',
                 'password.confirm' => 'Confirm Password | Project L.E.A.F.',
             ];
@@ -38,7 +46,7 @@
             }
         </style>
     </head>
-    <body class="font-sans antialiased bg-[#F8FAF8] text-[#1B4332] min-h-screen selection:bg-[#95D5B2] selection:text-[#1B4332]">
+    <body class="font-sans antialiased bg-[#F8FAF8] dark:bg-[#0F172A] text-[#1B4332] dark:text-slate-100 min-h-screen selection:bg-[#95D5B2] selection:text-[#1B4332]">
         {{ $slot }}
     </body>
 </html>

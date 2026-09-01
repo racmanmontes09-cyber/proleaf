@@ -57,33 +57,49 @@ class ServicesTest extends TestCase
         $this->assertEquals('-65 dBm', $service->getWifiRssiLabel($device));
         $this->assertEquals('0d 1h 0m', $service->getSystemUptimeLabel($device));
 
-        $cards = $service->buildDeviceCards(collect([$device]));
-        $this->assertCount(1, $cards);
-        $this->assertEquals('Service Node 1', $cards[0]['name']);
+        $deviceCards = $service->buildDeviceCards(collect([$device]));
+        $this->assertCount(1, $deviceCards);
+        $this->assertEquals('Service Node 1', $deviceCards[0]['name']);
+
+        $actuatorCards = $service->buildActuatorCards();
+        $this->assertCount(5, $actuatorCards);
+        $this->assertEquals('cooling_fan', $actuatorCards[4]['command']);
     }
 
-    public function test_device_online_grace_matches_the_four_second_heartbeat(): void
+    public function test_device_online_grace_adapts_to_heartbeat_interval(): void
     {
+        // With the runtime heartbeat (30s), effective grace = max(60, 30*2+10) = 70s
         $device = Device::create([
             'device_id' => 'ESP-SVC-TIMING',
             'name' => 'Timing Node',
-            'last_seen_at' => now()->subSeconds(4),
+            'last_seen_at' => now()->subSeconds(30),
         ]);
 
         $this->assertTrue($device->is_online);
 
-        $device->last_seen_at = now()->subSeconds(11);
+        // Still within grace period (50 < 70)
+        $device->last_seen_at = now()->subSeconds(50);
+        $this->assertTrue($device->is_online);
 
+        // Well within grace period (68 < 70)
+        $device->last_seen_at = now()->subSeconds(68);
+        $this->assertTrue($device->is_online);
+
+        // Exceeds the effective grace period (75 > 70)
+        $device->last_seen_at = now()->subSeconds(75);
         $this->assertFalse($device->is_online);
+
+        // Verify effectiveOnlineGraceSeconds uses the configured floor as a minimum
+        $this->assertEquals(70, Device::effectiveOnlineGraceSeconds());
     }
 
     public function test_telemetry_service_data_processing(): void
     {
         $service = app(TelemetryService::class);
-        $device = Device::create(['device_id' => 'ESP-SVC-02', 'name' => 'Service Node 2']);
+        $device = Device::create(['device_id' => 'ESP-SVC-02', 'name' => 'Service Node 2', 'last_seen_at' => now()]);
 
-        $t1 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 24.0, 'ph' => 6.2, 'measured_at' => now()->subMinutes(10)]);
-        $t2 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 26.0, 'ph' => 6.5, 'measured_at' => now()]);
+        $t1 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 24.0, 'ph' => 6.2, 'water_flow' => 1.1, 'water_level' => 70, 'measured_at' => now()->subMinutes(10)]);
+        $t2 = Telemetry::create(['device_id' => $device->id, 'air_temperature' => 26.0, 'ph' => 6.5, 'water_flow' => 1.3, 'water_level' => 72, 'measured_at' => now()]);
 
         $devices = $service->getDevicesWithTelemetries(1);
         $this->assertCount(1, $devices);
@@ -92,6 +108,8 @@ class ServicesTest extends TestCase
         $series = $service->buildTelemetryOverviewSeries(collect([$t1, $t2]));
         $this->assertEquals('Water pH', $series[0]['name']);
         $this->assertEquals([6.2, 6.5], $series[0]['data']);
+        $this->assertTrue(collect($series)->contains(fn (array $entry): bool => $entry['name'] === 'Water Flow (L/min)' && $entry['data'] === [1.1, 1.3]));
+        $this->assertTrue(collect($series)->contains(fn (array $entry): bool => $entry['name'] === 'Water Level (%)' && $entry['data'] === [70.0, 72.0]));
 
         $storeResult = $service->storeTelemetry($device, [
             'air_temperature' => 25.0,
@@ -168,6 +186,12 @@ class ServicesTest extends TestCase
         $this->assertArrayHasKey('temperatureValue', $data);
         $this->assertEquals('24.5', $data['temperatureValue']);
         $this->assertEquals('65', $data['humidityValue']);
+        $this->assertCount(5, $data['actuatorCards']);
+        $fanCard = collect($data['actuatorCards'])->firstWhere('command', 'cooling_fan');
+        $this->assertNotNull($fanCard);
+        $this->assertFalse(collect($data['monitoringSensors'])->contains(
+            fn (array $sensor): bool => ($sensor['name'] ?? '') === 'Relative Air Humidity'
+        ));
         $this->assertArrayHasKey('telemetryOverviewSeries', $data);
         $this->assertArrayHasKey('alerts', $data);
     }

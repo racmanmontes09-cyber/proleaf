@@ -20,7 +20,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         Session::regenerate();
 
-        $destination = auth()->user()?->isSuperAdmin()
+        $destination = auth()->user()?->isAdmin()
             ? route('admin.dashboard', absolute: false)
             : route('dashboard', absolute: false);
 
@@ -28,15 +28,7 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div class="mobile-dashboard-type min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8]">
-    <style>
-        @media (max-width: 639px) {
-            .mobile-dashboard-type * {
-                font-size: 7px !important;
-            }
-        }
-    </style>
-
+<div class="mobile-dashboard-type min-h-screen grid lg:grid-cols-12 overflow-hidden bg-[#F8FAF8] dark:bg-[#0F172A]">
     <!-- ========================================== -->
     <!-- LEFT SIDE: BRANDING & DASHBOARD VISUAL (45%) -->
     <!-- ========================================== -->
@@ -50,12 +42,12 @@ new #[Layout('layouts.guest')] class extends Component
         <div class="relative z-10">
             <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-3 group focus:outline-none">
                 <div class="w-10 h-10 rounded-xl bg-white/90 border border-white/20 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-                    <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
+                    <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    <span class="text-xl font-extrabold tracking-normal text-white flex items-center gap-2">
                         Project L.E.A.F.
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#95D5B2]/20 text-[#95D5B2] border border-[#95D5B2]/30">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] lg:text-xs lg:leading-4 font-semibold bg-[#95D5B2]/20 text-[#95D5B2] border border-[#95D5B2]/30">
                             IoT System
                         </span>
                     </span>
@@ -67,11 +59,11 @@ new #[Layout('layouts.guest')] class extends Component
         <div class="relative z-10 my-auto space-y-8 py-8">
             
             <div class="space-y-3">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#95D5B2] text-xs font-semibold border border-white/10 backdrop-blur-md">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#95D5B2] text-xs lg:text-sm lg:leading-5 font-semibold border border-white/10 backdrop-blur-md">
                     <span class="w-2 h-2 rounded-full bg-[#95D5B2] animate-pulse"></span>
                     Automated Lettuce Farm Hub
                 </div>
-                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-normal text-white leading-tight">
                     An IoT-Based Hydroponic Cultivation System
                 </h1>
                 <p class="text-sm sm:text-base text-[#95D5B2]/90 leading-relaxed font-normal">
@@ -83,12 +75,12 @@ new #[Layout('layouts.guest')] class extends Component
             <div class="p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/15 shadow-2xl space-y-5">
                 
                 <!-- Card Header -->
-                <div class="flex items-center justify-between pb-3 border-b border-white/10 text-xs">
+                <div class="flex items-center justify-between pb-3 border-b border-white/10 text-xs lg:text-sm lg:leading-5">
                     <div class="flex items-center gap-2 font-mono text-[#95D5B2]">
                         <span class="w-2 h-2 rounded-full bg-[#95D5B2] animate-ping"></span>
                         ESP32 TELEMETRY ONLINE
                     </div>
-                    <span class="text-[11px] px-2 py-0.5 rounded bg-white/10 text-white font-mono">
+                    <span class="text-[11px] lg:text-xs lg:leading-4 px-2 py-0.5 rounded bg-white/10 text-white font-mono">
                         Lactuca sativa
                     </span>
                 </div>
@@ -96,26 +88,26 @@ new #[Layout('layouts.guest')] class extends Component
                 <!-- Telemetry Metrics Grid -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Water Temp</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Water Temp</span>
                         <span class="text-lg font-bold text-white">22.4 °C</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Solution pH</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Solution pH</span>
                         <span class="text-lg font-bold text-white">6.20 pH</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Nutrient EC</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Nutrient EC</span>
                         <span class="text-lg font-bold text-white">1.82 mS</span>
                     </div>
                     <div class="p-3 rounded-2xl bg-black/20 border border-white/10">
-                        <span class="text-[11px] text-[#95D5B2] block">Water Level</span>
+                        <span class="text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] block">Water Level</span>
                         <span class="text-lg font-bold text-white">88 %</span>
                     </div>
                 </div>
 
                 <!-- Live Sparkline Graphic -->
                 <div class="pt-2">
-                    <div class="flex items-center justify-between text-[11px] text-[#95D5B2] mb-1 font-mono">
+                    <div class="flex items-center justify-between text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2] mb-1 font-mono">
                         <span>24h pH Stability Index</span>
                         <span>OPTIONAL TARGET</span>
                     </div>
@@ -131,7 +123,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <!-- Left Side Footer -->
-        <div class="relative z-10 text-xs text-[#95D5B2]/70 flex items-center justify-between pt-6 border-t border-white/10">
+        <div class="relative z-10 text-xs lg:text-sm lg:leading-5 text-[#95D5B2]/70 flex items-center justify-between pt-6 border-t border-white/10">
             <span>© 2026 Project L.E.A.F.</span>
             <span>Project L.E.A.F. • Livewire 3 • ESP32</span>
         </div>
@@ -149,28 +141,28 @@ new #[Layout('layouts.guest')] class extends Component
             <!-- Mobile Brand Header (Visible only on smaller screens) -->
             <div class="lg:hidden text-center space-y-2">
                 <a href="{{ url('/') }}" wire:navigate class="inline-flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 flex items-center justify-center overflow-hidden shadow-md">
-                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
+                    <div class="w-10 h-10 rounded-xl bg-white/90 border border-[#2D6A4F]/10 dark:border-white/10 flex items-center justify-center overflow-hidden shadow-md">
+                        <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-8 w-8 object-contain" />
                     </div>
-                    <span class="text-2xl font-extrabold text-[#1B4332]">Project L.E.A.F.</span>
+                    <span class="text-2xl font-extrabold text-[#1B4332] dark:text-slate-100">Project L.E.A.F.</span>
                 </a>
-                <p class="text-xs text-[#40916C] font-semibold uppercase tracking-wider">
+                <p class="text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-[#40916C] font-semibold uppercase tracking-normal sm:tracking-wider">
                     IoT-Based Hydroponic Cultivation System
                 </p>
             </div>
 
             <!-- Login Card Wrapper -->
-            <div class="p-0 lg:p-8 xl:p-10 rounded-none lg:rounded-3xl bg-transparent lg:bg-white/90 backdrop-blur-none lg:backdrop-blur-xl border-0 lg:border border-[#2D6A4F]/12 shadow-none lg:shadow-2xl lg:shadow-emerald-950/5 space-y-6">
+            <div class="p-0 lg:p-8 xl:p-10 rounded-none lg:rounded-3xl bg-transparent lg:bg-white/90 dark:lg:bg-[#1E293B]/90 backdrop-blur-none lg:backdrop-blur-xl border-0 lg:border border-[#2D6A4F]/12 dark:border-white/10 shadow-none lg:shadow-2xl lg:shadow-emerald-950/5 space-y-6">
                 
                 <!-- Card Welcome Header -->
-                <div class="space-y-2 text-left">
-                    <div class="hidden lg:flex items-center gap-2 text-xs font-bold text-[#2D6A4F] uppercase tracking-wider">
+                <div class="space-y-2 text-left max-sm:hidden">
+                    <div class="hidden lg:flex items-center gap-2 text-xs font-bold text-[#2D6A4F] dark:text-leaf-300 uppercase tracking-normal sm:tracking-wider">
                         🌱 Project L.E.A.F.
                     </div>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-[#1B4332] tracking-tight">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold leading-tight text-[#1B4332] dark:text-slate-100 tracking-normal">
                         Welcome Back
                     </h2>
-                    <p class="text-sm text-[#1B4332]/70">
+                    <p class="text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 text-[#1B4332]/70 dark:text-slate-400">
                         Sign in to access your hydroponic monitoring dashboard.
                     </p>
                 </div>
@@ -183,11 +175,11 @@ new #[Layout('layouts.guest')] class extends Component
                     
                     <!-- Email Field -->
                     <div class="space-y-1.5">
-                        <label for="email" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="email" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Email Address
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- Mail Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -202,19 +194,19 @@ new #[Layout('layouts.guest')] class extends Component
                                 autofocus 
                                 autocomplete="username"
                                 placeholder="name@farm.com"
-                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                         </div>
-                        <x-input-error :messages="$errors->get('form.email')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('form.email')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
                     <!-- Password Field -->
                     <div class="space-y-1.5">
-                        <label for="password" class="block text-xs font-bold text-[#1B4332] uppercase tracking-wider">
+                        <label for="password" class="block text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-bold text-[#1B4332] dark:text-slate-100 uppercase tracking-normal sm:tracking-wider">
                             Password
                         </label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2D6A4F]/60 dark:text-leaf-300/70">
                                 <!-- Lock Heroicon -->
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -228,13 +220,13 @@ new #[Layout('layouts.guest')] class extends Component
                                 required 
                                 autocomplete="current-password"
                                 placeholder="••••••••"
-                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-sm transition-all shadow-sm"
+                                class="w-full pl-11 pr-11 py-3 rounded-xl border border-[#2D6A4F]/20 bg-white/80 text-[#1B4332] placeholder-gray-400 dark:border-white/15 dark:bg-[#0F172A] dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:border-[#2D6A4F] text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 transition-all shadow-sm"
                             />
                             <!-- Toggle Password Visibility Button -->
                             <button 
                                 type="button" 
                                 @click="showPassword = !showPassword" 
-                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-[#2D6A4F] focus:outline-none"
+                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 dark:text-slate-500 hover:text-[#2D6A4F] focus:outline-none"
                                 title="Toggle password visibility"
                             >
                                 <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,10 +238,10 @@ new #[Layout('layouts.guest')] class extends Component
                                 </svg>
                             </button>
                         </div>
-                        <x-input-error :messages="$errors->get('form.password')" class="mt-1 text-xs text-rose-600 font-semibold" />
+                        <x-input-error :messages="$errors->get('form.password')" class="mt-1 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 text-rose-600 dark:text-rose-400 font-semibold" />
                     </div>
 
-                    <!-- Remember Me & Forgot Password Row -->
+                    <!-- Remember Me Row -->
                     <div class="flex items-center justify-between pt-1">
                         <label for="remember" class="inline-flex items-center cursor-pointer select-none">
                             <input 
@@ -257,20 +249,12 @@ new #[Layout('layouts.guest')] class extends Component
                                 id="remember" 
                                 type="checkbox" 
                                 name="remember" 
-                                class="w-4 h-4 rounded text-[#2D6A4F] border-gray-300 focus:ring-[#2D6A4F]"
+                                class="w-4 h-4 rounded text-[#2D6A4F] dark:text-leaf-300 border-gray-300 focus:ring-[#2D6A4F]"
                             >
-                            <span class="ml-2 text-xs font-semibold text-[#1B4332]/80">Remember me</span>
+                            <span class="ml-2 text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-semibold text-[#1B4332]/80 dark:text-slate-300">Remember me</span>
                         </label>
 
-                        @if (Route::has('password.request'))
-                            <a 
-                                href="{{ route('password.request') }}" 
-                                wire:navigate 
-                                class="text-xs font-semibold text-[#2D6A4F] hover:text-[#1B4332] transition-colors hover:underline"
-                            >
-                                Forgot password?
-                            </a>
-                        @endif
+                        <span class="flex-1"></span>
                     </div>
 
                     <!-- Sign In Submit Button -->
@@ -279,7 +263,7 @@ new #[Layout('layouts.guest')] class extends Component
                             type="submit" 
                             wire:loading.attr="disabled" 
                             wire:target="login"
-                            class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                            class="w-full py-3.5 px-6 rounded-xl text-base leading-6 sm:text-sm sm:leading-5 lg:text-base lg:leading-6 font-bold text-white bg-[#2D6A4F] hover:bg-[#1B4332] shadow-lg shadow-[#2D6A4F]/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                         >
                             <span wire:loading.remove wire:target="login" class="flex items-center gap-2">
                                 Sign In
@@ -300,11 +284,11 @@ new #[Layout('layouts.guest')] class extends Component
                 </form>
 
                 <!-- Return to Welcome Page Link -->
-                <div class="pt-6 border-t border-[#2D6A4F]/10 text-center">
+                <div class="pt-6 border-t border-[#2D6A4F]/10 dark:border-white/10 text-center">
                     <a 
                         href="{{ url('/') }}" 
                         wire:navigate 
-                        class="inline-flex items-center text-xs font-semibold text-[#1B4332]/70 hover:text-[#2D6A4F] transition-colors gap-1.5 group"
+                        class="inline-flex items-center text-sm leading-5 sm:text-xs sm:leading-4 lg:text-sm lg:leading-5 font-semibold text-[#1B4332]/70 dark:text-slate-400 hover:text-[#2D6A4F] transition-colors gap-1.5 group"
                     >
                         <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>

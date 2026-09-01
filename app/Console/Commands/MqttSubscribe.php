@@ -162,9 +162,35 @@ class MqttSubscribe extends Command
             return;
         }
 
+        $updateData = ['last_seen_at' => now()];
+
+        $actuators = $payload['actuators'] ?? null;
+        if (is_array($actuators)) {
+            $actuatorMap = [
+                'cooling_fan' => 'actuator_cooling_fan',
+                'nutrient_pump_a' => 'actuator_nutrient_pump_a',
+                'nutrient_pump_b' => 'actuator_nutrient_pump_b',
+                'ph_up_pump' => 'actuator_ph_up_pump',
+                'ph_down_pump' => 'actuator_ph_down_pump',
+            ];
+
+            foreach ($actuatorMap as $jsonKey => $dbColumn) {
+                if (array_key_exists($jsonKey, $actuators)) {
+                    $updateData[$dbColumn] = (bool) $actuators[$jsonKey];
+                }
+            }
+
+            $updateData['actuator_states_updated_at'] = now();
+
+            $this->logThrottled('info', 'actuator-state:' . $deviceIdentifier, '[MQTT] Actuator state updated', [
+                'device_id' => $deviceIdentifier,
+                'actuators' => $actuators,
+            ], 60);
+        }
+
         Device::query()
             ->where('device_id', $deviceIdentifier)
-            ->update(['last_seen_at' => now()]);
+            ->update($updateData);
     }
 
     /**

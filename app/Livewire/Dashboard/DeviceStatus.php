@@ -175,6 +175,8 @@ class DeviceStatus extends Component
 
     public array $actuatorCards = [];
 
+    public int $actuatorOnCount = 0;
+
     public int $pendingCommandCount = 0;
 
     public string $commandStatusMessage = '';

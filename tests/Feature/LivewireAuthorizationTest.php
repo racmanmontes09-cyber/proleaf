@@ -17,9 +17,9 @@ class LivewireAuthorizationTest extends TestCase
     {
         $user = User::factory()->create();
         // Give view permission so component can mount, but not update permission
-        $role = Role::create(['name' => 'Viewer', 'slug' => 'viewer']);
-        $viewPerm = Permission::create(['name' => 'Settings View', 'slug' => 'settings.view']);
-        $role->permissions()->attach($viewPerm->id);
+        $role = Role::firstOrCreate(['slug' => 'viewer'], ['name' => 'Viewer']);
+        $viewPerm = Permission::firstOrCreate(['slug' => 'settings.view'], ['name' => 'Settings View']);
+        $role->permissions()->syncWithoutDetaching([$viewPerm->id]);
         $user->assignRole($role);
 
         $this->actingAs($user);
@@ -33,16 +33,20 @@ class LivewireAuthorizationTest extends TestCase
     public function test_settings_page_allowed_with_permission(): void
     {
         $user = User::factory()->create();
-        $role = Role::create(['name' => 'Manager', 'slug' => 'manager']);
-        $viewPerm = Permission::create(['name' => 'Settings View', 'slug' => 'settings.view']);
-        $updatePerm = Permission::create(['name' => 'Settings Update', 'slug' => 'settings.update']);
-        $role->permissions()->attach([$viewPerm->id, $updatePerm->id]);
+        $role = Role::firstOrCreate(['slug' => 'manager'], ['name' => 'Manager']);
+        $viewPerm = Permission::firstOrCreate(['slug' => 'settings.view'], ['name' => 'Settings View']);
+        $updatePerm = Permission::firstOrCreate(['slug' => 'settings.update'], ['name' => 'Settings Update']);
+        $role->permissions()->syncWithoutDetaching([$viewPerm->id, $updatePerm->id]);
         $user->assignRole($role);
 
         $this->actingAs($user);
 
         Livewire::actingAs($user)->test(\App\Livewire\SettingsPage::class)
             ->call('save')
-            ->assertSet('saved', true);
+            ->assertSet('saved', true)
+            ->assertDontSee('Automatic Dosing')
+            ->assertDontSee('limits for humidity')
+            ->assertDontSee('Fan Activation Temperature')
+            ->assertSee('Air Temperature');
     }
 }

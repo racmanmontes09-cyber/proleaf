@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Device;
 use App\Models\DeviceCommand;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class DeviceCommandRepository
@@ -15,12 +16,15 @@ class DeviceCommandRepository
 
     public function pendingForDevice(Device $device, int $limit = 20): Collection
     {
-        return DeviceCommand::query()
-            ->forDevice($device)
-            ->pending()
+        return $this->pendingForDeviceQuery($device)
             ->orderBy('created_at')
             ->limit($limit)
             ->get();
+    }
+
+    public function countPendingForDevice(Device $device): int
+    {
+        return $this->pendingForDeviceQuery($device)->count();
     }
 
     public function activeForDevice(Device $device, int $limit = 50): Collection
@@ -37,12 +41,11 @@ class DeviceCommandRepository
     {
         $normalizedPayload = $this->normalizePayload($payload);
 
-        return DeviceCommand::query()
-            ->forDevice($device)
-            ->pending()
+        return $this->pendingForDeviceQuery($device)
             ->where('command', $command)
+            ->select(['id', 'command', 'title', 'payload', 'status', 'attempt_count', 'max_attempts', 'expires_at', 'created_at', 'updated_at'])
             ->get()
-            ->first(fn (DeviceCommand $commandModel): bool => $this->normalizePayload($commandModel->payload) === $normalizedPayload);
+            ->first(fn (DeviceCommand $commandModel): bool => $this->normalizePayload((array) $commandModel->payload) === $normalizedPayload);
     }
 
     public function forDeviceById(Device $device, int $id): ?DeviceCommand
@@ -66,6 +69,17 @@ class DeviceCommandRepository
         $deviceCommand->save();
 
         return $deviceCommand;
+    }
+
+    protected function pendingForDeviceQuery(Device $device): Builder
+    {
+        return DeviceCommand::query()
+            ->forDevice($device)
+            ->pending()
+            ->where(function (Builder $query): void {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 
     protected function normalizePayload(array $payload): string

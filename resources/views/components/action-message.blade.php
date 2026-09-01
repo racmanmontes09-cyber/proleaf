@@ -5,6 +5,6 @@
      x-show.transition.out.opacity.duration.1500ms="shown"
      x-transition:leave.opacity.duration.1500ms
      style="display: none;"
-    {{ $attributes->merge(['class' => 'text-sm text-gray-600']) }}>
+    {{ $attributes->merge(['class' => 'text-sm lg:text-base lg:leading-6 text-gray-600 dark:text-leaf-200 dark:bg-leaf-300/15']) }}>
     {{ $slot->isEmpty() ? __('Saved.') : $slot }}
 </div>

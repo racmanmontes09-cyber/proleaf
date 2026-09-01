@@ -13,10 +13,12 @@ class DashboardTelemetryController extends Controller
 {
     public function __invoke(Request $request, TelemetryService $telemetryService): JsonResponse
     {
+        $maxLimit = $this->configuredTelemetryLimitMax();
+
         $validated = $request->validate([
             'device_id' => ['nullable', 'integer', 'min:1'],
             'after_id' => ['nullable', 'integer', 'min:0'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.$maxLimit],
             'from' => ['nullable', 'date_format:Y-m-d\\TH:i'],
             'to' => ['nullable', 'date_format:Y-m-d\\TH:i', 'after_or_equal:from'],
         ]);
@@ -38,10 +40,10 @@ class DashboardTelemetryController extends Controller
         }
 
         $afterId = (int) ($validated['after_id'] ?? 0);
-        $configuredMaxPoints = (int) config('leaf.dashboard.live_chart.max_points', 60);
+        $configuredMaxPoints = (int) config('leaf.dashboard.live_chart.max_points', 720);
         $configuredBatchLimit = (int) config('leaf.dashboard.live_chart.poll_batch_limit', 120);
         $limit = (int) ($validated['limit'] ?? ($afterId > 0 ? $configuredBatchLimit : $configuredMaxPoints));
-        $limit = max(1, min($limit, 500));
+        $limit = max(1, min($limit, $maxLimit));
 
         $readings = $this->getTelemetryReadings($device, $telemetryService, $afterId, $limit, $from, $to);
 
@@ -55,6 +57,16 @@ class DashboardTelemetryController extends Controller
             'latest_kpis' => $latestReading ? $telemetryService->serializeTelemetryKpis($latestReading) : null,
             'readings' => $telemetryService->serializeTelemetryReadings($readings),
         ])->header('Cache-Control', 'no-store, max-age=0');
+    }
+
+    private function configuredTelemetryLimitMax(): int
+    {
+        return max(
+            1,
+            (int) config('leaf.dashboard.live_chart.max_points', 720),
+            (int) config('leaf.dashboard.live_chart.buffer_points', 1000),
+            (int) config('leaf.dashboard.live_chart.poll_batch_limit', 120),
+        );
     }
 
     private function resolveDevice(?int $deviceId): ?Device

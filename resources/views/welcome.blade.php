@@ -95,12 +95,6 @@
             background-image: radial-gradient(rgba(45, 106, 79, 0.08) 1px, transparent 1px);
             background-size: 24px 24px;
         }
-
-        @media (max-width: 639px) {
-            .mobile-dashboard-type * {
-                font-size: 7px !important;
-            }
-        }
     </style>
 </head>
 <body class="mobile-dashboard-type min-h-screen antialiased bg-grid-pattern selection:bg-[#95D5B2] selection:text-[#1B4332] flex flex-col justify-between">
@@ -117,10 +111,10 @@
                     
                     <!-- Left: Logo & Brand -->
                     <a href="#" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] rounded-xl p-1">
-                        <img src="{{ asset('logo/is_logo.png') }}" alt="Project L.E.A.F. is logo" class="h-10 w-10 object-contain" />
-                        <img src="{{ asset('logo/logo.png') }}" alt="Project L.E.A.F. logo" class="h-10 w-10 object-contain" />
+                        <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. is logo" class="h-10 w-10 object-contain" />
+                        <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-10 w-10 object-contain" />
                         <div class="flex flex-col">
-                            <span class="text-xl font-extrabold tracking-tight text-[#1B4332] flex items-center gap-1.5">
+                            <span class="text-xl font-extrabold tracking-normal text-[#1B4332] flex items-center gap-1.5">
                                 Project L.E.A.F.
                             </span>
                         </div>
@@ -211,14 +205,14 @@
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#40916C] opacity-75"></span>
                                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#2D6A4F]"></span>
                             </span>
-                            <span class="text-xs font-semibold text-[#1B4332] tracking-wide uppercase">
+                            <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#1B4332] tracking-normal sm:tracking-wide uppercase">
                                 IoT Hydroponic Automation Platform
                             </span>
                         </div>
 
                         <!-- Headline & Subtitle -->
                         <div class="space-y-3">
-                            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#1B4332] leading-[1.15]">
+                            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-normal text-[#1B4332] leading-[1.15]">
                                 Project <span class="gradient-text">L.E.A.F.</span>
                             </h1>
                             <h2 class="text-lg sm:text-xl lg:text-2xl font-bold text-[#40916C] leading-snug">
@@ -267,15 +261,15 @@
                         <div class="pt-6 border-t border-[#2D6A4F]/10 grid grid-cols-3 gap-4">
                             <div>
                                 <span class="block text-2xl font-extrabold text-[#1B4332]">24/7</span>
-                                <span class="text-xs text-[#1B4332]/70 font-medium">Real-Time Sync</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium">Real-Time Sync</span>
                             </div>
                             <div>
                                 <span class="block text-2xl font-extrabold text-[#2D6A4F]">5 Telemetry</span>
-                                <span class="text-xs text-[#1B4332]/70 font-medium">Core Parameters</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium">Core Parameters</span>
                             </div>
                             <div>
                                 <span class="block text-2xl font-extrabold text-[#1B4332]">ESP32</span>
-                                <span class="text-xs text-[#1B4332]/70 font-medium">Smart Hardware</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium">Smart Hardware</span>
                             </div>
                         </div>
 
@@ -287,15 +281,15 @@
                         <div class="relative rounded-3xl p-6 sm:p-8 glass-card shadow-2xl shadow-emerald-950/10 border border-[#2D6A4F]/15 space-y-6">
                             
                             <!-- Card Header: Device Header -->
-                            <div class="flex items-center justify-between pb-4 border-b border-[#2D6A4F]/10">
+                            <div class="flex flex-wrap items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#2D6A4F]/10">
                                 <div class="flex items-center gap-3">
                                     <div class="w-3 h-3 rounded-full bg-[#2D6A4F] animate-ping"></div>
                                     <div>
-                                        <h3 class="text-sm font-bold text-[#1B4332] tracking-tight">ESP32 NFT Channel Controller</h3>
-                                        <p class="text-xs text-[#40916C]">Node ID: LEAF-NODE-01 • Status: Active</p>
+                                        <h3 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332] tracking-normal">ESP32 NFT Channel Controller</h3>
+                                        <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#40916C]">Node ID: LEAF-NODE-01 • Status: Active</p>
                                     </div>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#95D5B2]/30 text-[#1B4332] border border-[#2D6A4F]/20">
+                                <span class="px-2.5 py-1 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#95D5B2]/30 text-[#1B4332] border border-[#2D6A4F]/20">
                                     Lactuca sativa
                                 </span>
                             </div>
@@ -305,7 +299,7 @@
                                 
                                 <!-- Water Temp Widget -->
                                 <div class="p-4 rounded-2xl bg-white/90 border border-[#2D6A4F]/10 shadow-sm hover:border-[#2D6A4F]/30 transition-all">
-                                    <div class="flex items-center justify-between text-xs text-[#1B4332]/70 font-medium mb-1">
+                                    <div class="flex items-center justify-between text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium mb-1">
                                         <span>Water Temp</span>
                                         <svg class="w-4 h-4 text-[#2D6A4F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -313,7 +307,7 @@
                                     </div>
                                     <div class="flex items-baseline gap-1">
                                         <span class="text-2xl font-bold text-[#1B4332]">22.4</span>
-                                        <span class="text-xs font-semibold text-[#40916C]">°C</span>
+                                        <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#40916C]">°C</span>
                                     </div>
                                     <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
                                         <div class="bg-[#2D6A4F] h-1.5 rounded-full" style="width: 72%"></div>
@@ -322,13 +316,13 @@
 
                                 <!-- pH Level Widget -->
                                 <div class="p-4 rounded-2xl bg-white/90 border border-[#2D6A4F]/10 shadow-sm hover:border-[#2D6A4F]/30 transition-all">
-                                    <div class="flex items-center justify-between text-xs text-[#1B4332]/70 font-medium mb-1">
+                                    <div class="flex items-center justify-between text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium mb-1">
                                         <span>pH Level</span>
-                                        <span class="px-1.5 py-0.5 text-[10px] font-bold bg-[#95D5B2]/30 text-[#1B4332] rounded">Optimal</span>
+                                        <span class="px-1.5 py-0.5 text-xs sm:text-[10px] lg:text-xs lg:leading-4 font-bold bg-[#95D5B2]/30 text-[#1B4332] rounded">Optimal</span>
                                     </div>
                                     <div class="flex items-baseline gap-1">
                                         <span class="text-2xl font-bold text-[#1B4332]">6.20</span>
-                                        <span class="text-xs font-semibold text-[#40916C]">pH</span>
+                                        <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#40916C]">pH</span>
                                     </div>
                                     <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
                                         <div class="bg-[#40916C] h-1.5 rounded-full" style="width: 65%"></div>
@@ -337,7 +331,7 @@
 
                                 <!-- Electrical Conductivity (EC) -->
                                 <div class="p-4 rounded-2xl bg-white/90 border border-[#2D6A4F]/10 shadow-sm hover:border-[#2D6A4F]/30 transition-all">
-                                    <div class="flex items-center justify-between text-xs text-[#1B4332]/70 font-medium mb-1">
+                                    <div class="flex items-center justify-between text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium mb-1">
                                         <span>Nutrient EC</span>
                                         <svg class="w-4 h-4 text-[#40916C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
@@ -345,7 +339,7 @@
                                     </div>
                                     <div class="flex items-baseline gap-1">
                                         <span class="text-2xl font-bold text-[#1B4332]">1.82</span>
-                                        <span class="text-xs font-semibold text-[#40916C]">mS/cm</span>
+                                        <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#40916C]">mS/cm</span>
                                     </div>
                                     <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
                                         <div class="bg-[#2D6A4F] h-1.5 rounded-full" style="width: 80%"></div>
@@ -354,7 +348,7 @@
 
                                 <!-- Ambient Humidity -->
                                 <div class="p-4 rounded-2xl bg-white/90 border border-[#2D6A4F]/10 shadow-sm hover:border-[#2D6A4F]/30 transition-all">
-                                    <div class="flex items-center justify-between text-xs text-[#1B4332]/70 font-medium mb-1">
+                                    <div class="flex items-center justify-between text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-medium mb-1">
                                         <span>Air Humidity</span>
                                         <svg class="w-4 h-4 text-[#2D6A4F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 001.059-9.891A7.001 7.001 0 005.999 7H5a5 5 0 00-2 9.9v.1z"/>
@@ -362,7 +356,7 @@
                                     </div>
                                     <div class="flex items-baseline gap-1">
                                         <span class="text-2xl font-bold text-[#1B4332]">68.5</span>
-                                        <span class="text-xs font-semibold text-[#40916C]">%/RH</span>
+                                        <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#40916C]">%/RH</span>
                                     </div>
                                     <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
                                         <div class="bg-[#52B788] h-1.5 rounded-full" style="width: 68%"></div>
@@ -372,7 +366,7 @@
                             </div>
 
                             <!-- Channel Graphic Bar -->
-                            <div class="p-4 rounded-2xl bg-[#1B4332] text-white flex items-center justify-between shadow-inner">
+                            <div class="p-4 rounded-2xl bg-[#1B4332] text-white flex flex-wrap items-center justify-between gap-3 shadow-inner">
                                 <div class="flex items-center gap-3">
                                     <div class="p-2 rounded-xl bg-[#2D6A4F] text-[#95D5B2]">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,11 +374,11 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <div class="text-xs text-[#95D5B2] font-semibold uppercase tracking-wider">Automated NFT Flow Rate</div>
-                                        <div class="text-sm font-bold text-white">4.2 Liters / Min • Normal Flow</div>
+                                        <div class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#95D5B2] font-semibold uppercase tracking-normal sm:tracking-wider">Automated NFT Flow Rate</div>
+                                        <div class="text-sm lg:text-base lg:leading-6 font-bold text-white">4.2 Liters / Min • Normal Flow</div>
                                     </div>
                                 </div>
-                                <span class="text-xs px-2.5 py-1 rounded-md bg-[#2D6A4F] text-[#95D5B2] font-mono">PUMP: ON</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 px-2.5 py-1 rounded-md bg-[#2D6A4F] text-[#95D5B2] font-mono">PUMP: ON</span>
                             </div>
 
                         </div>
@@ -395,8 +389,8 @@
                                 🌿
                             </div>
                             <div>
-                                <p class="text-xs font-bold text-[#1B4332]">Lettuce Growth Phase</p>
-                                <p class="text-[11px] text-[#40916C]">Day 18 • Vegetative</p>
+                                <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold text-[#1B4332]">Lettuce Growth Phase</p>
+                                <p class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#40916C]">Day 18 • Vegetative</p>
                             </div>
                         </div>
 
@@ -406,8 +400,8 @@
                                 ⚡
                             </div>
                             <div>
-                                <p class="text-xs font-bold">Auto Dosing Control</p>
-                                <p class="text-[11px] text-[#95D5B2]">Nutrient A & B Standardized</p>
+                                <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold">Auto Dosing Control</p>
+                                <p class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#95D5B2]">Nutrient A & B Standardized</p>
                             </div>
                         </div>
 
@@ -425,13 +419,13 @@
                 
                 <!-- Section Header -->
                 <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold tracking-normal sm:tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
                         Precision Engineering
                     </span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-normal">
                         Built for Modern Hydroponic Farming
                     </h2>
-                    <p class="text-base sm:text-lg text-[#1B4332]/75">
+                    <p class="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-7 text-[#1B4332]/75">
                         Our IoT framework pairs specialized sensors with micro-automation to guarantee peak lettuce health and water efficiency.
                     </p>
                 </div>
@@ -450,12 +444,12 @@
                         <h3 class="text-xl font-bold text-[#1B4332] mb-3 group-hover:text-[#2D6A4F] transition-colors">
                             📡 Real-Time Monitoring
                         </h3>
-                        <p class="text-sm text-[#1B4332]/75 leading-relaxed">
+                        <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/75 leading-relaxed">
                             Monitor sensor readings instantly. Live data streams continuously from ESP32 controllers directly to your interactive browser interface with zero latency delay.
                         </p>
                         <div class="mt-6 flex flex-wrap gap-2">
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Instant Telemetry</span>
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Livewire 3 Sync</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Instant Telemetry</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Livewire 3 Sync</span>
                         </div>
                     </div>
 
@@ -470,12 +464,12 @@
                         <h3 class="text-xl font-bold text-[#1B4332] mb-3 group-hover:text-[#2D6A4F] transition-colors">
                             🌡 Environmental Monitoring
                         </h3>
-                        <p class="text-sm text-[#1B4332]/75 leading-relaxed">
+                        <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/75 leading-relaxed">
                             Comprehensive tracking of ambient air Temperature and Humidity for lettuce cultivation conditions.
                         </p>
                         <div class="mt-6 flex flex-wrap gap-2">
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Ambient Air Temp</span>
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Relative Humidity</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Ambient Air Temp</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Relative Humidity</span>
                         </div>
                     </div>
 
@@ -490,12 +484,12 @@
                         <h3 class="text-xl font-bold text-[#1B4332] mb-3 group-hover:text-[#2D6A4F] transition-colors">
                             💧 Water Quality Monitoring
                         </h3>
-                        <p class="text-sm text-[#1B4332]/75 leading-relaxed">
+                        <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/75 leading-relaxed">
                             Detailed telemetry for Water Temperature, pH Balance, Electrical Conductivity (EC), Water Flow rate, and Reservoir Tank Water Level to eliminate nutrient stress.
                         </p>
                         <div class="mt-6 flex flex-wrap gap-2">
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">pH & EC Sensor</span>
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Flow & Reservoir Level</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">pH & EC Sensor</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Flow & Reservoir Level</span>
                         </div>
                     </div>
 
@@ -510,12 +504,12 @@
                         <h3 class="text-xl font-bold text-[#1B4332] mb-3 group-hover:text-[#2D6A4F] transition-colors">
                             ⚡ Smart Automation
                         </h3>
-                        <p class="text-sm text-[#1B4332]/75 leading-relaxed">
+                        <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/75 leading-relaxed">
                             Proactive automated alerts, notifications, cooling fan state triggers, automated dosing relays, and intelligent threshold monitoring to safeguard crops 24/7.
                         </p>
                         <div class="mt-6 flex flex-wrap gap-2">
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Auto Relay Control</span>
-                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 text-[#1B4332]">Threshold Alerts</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Auto Relay Control</span>
+                            <span class="px-2.5 py-1 rounded-md text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-gray-100 text-[#1B4332]">Threshold Alerts</span>
                         </div>
                     </div>
 
@@ -531,13 +525,13 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold tracking-normal sm:tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
                         Live Visual Interface
                     </span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-normal">
                         Designed for Precision Hydroponic Management
                     </h2>
-                    <p class="text-base sm:text-lg text-[#1B4332]/75">
+                    <p class="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-7 text-[#1B4332]/75">
                         A clean, intuitive control center that gives you absolute insight into your farm's vital telemetry.
                     </p>
                 </div>
@@ -553,7 +547,7 @@
                             <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
                         </div>
                         <div class="flex-1 max-w-xl mx-4">
-                            <div class="bg-black/30 text-xs font-mono text-[#95D5B2] px-4 py-1.5 rounded-lg text-center truncate border border-[#2D6A4F]/40 flex items-center justify-center gap-2">
+                            <div class="bg-black/30 text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-mono text-[#95D5B2] px-4 py-1.5 rounded-lg text-center truncate border border-[#2D6A4F]/40 flex items-center justify-center gap-2">
                                 <svg class="w-3.5 h-3.5 text-[#95D5B2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                 </svg>
@@ -562,7 +556,7 @@
                         </div>
                         <div class="hidden sm:flex items-center gap-2">
                             <span class="h-2 w-2 rounded-full bg-[#95D5B2] animate-pulse"></span>
-                            <span class="text-xs font-semibold text-[#95D5B2] font-mono">ESP32 ONLINE</span>
+                            <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold text-[#95D5B2] font-mono">ESP32 ONLINE</span>
                         </div>
                     </div>
 
@@ -573,41 +567,41 @@
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <!-- Temp -->
                             <div class="p-4 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm">
-                                <span class="text-xs text-[#1B4332]/70 font-semibold block">Air Temp</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-semibold block">Air Temp</span>
                                 <span class="text-2xl font-extrabold text-[#1B4332] mt-1 block">24.2 °C</span>
-                                <span class="text-[11px] text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
+                                <span class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
                                     ✓ Within Bounds
                                 </span>
                             </div>
                             <!-- Humidity -->
                             <div class="p-4 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm">
-                                <span class="text-xs text-[#1B4332]/70 font-semibold block">Air Humidity</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-semibold block">Air Humidity</span>
                                 <span class="text-2xl font-extrabold text-[#1B4332] mt-1 block">68 %</span>
-                                <span class="text-[11px] text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
+                                <span class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
                                     ✓ Optimal VPD
                                 </span>
                             </div>
                             <!-- pH -->
                             <div class="p-4 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm">
-                                <span class="text-xs text-[#1B4332]/70 font-semibold block">Solution pH</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-semibold block">Solution pH</span>
                                 <span class="text-2xl font-extrabold text-[#1B4332] mt-1 block">6.2 pH</span>
-                                <span class="text-[11px] text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
+                                <span class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
                                     ✓ Target 5.8-6.5
                                 </span>
                             </div>
                             <!-- EC -->
                             <div class="p-4 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm">
-                                <span class="text-xs text-[#1B4332]/70 font-semibold block">Nutrient EC</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-semibold block">Nutrient EC</span>
                                 <span class="text-2xl font-extrabold text-[#1B4332] mt-1 block">1.8 mS</span>
-                                <span class="text-[11px] text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
+                                <span class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
                                     ✓ Balanced Formula
                                 </span>
                             </div>
                             <!-- Water Level -->
                             <div class="p-4 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm col-span-2 md:col-span-1">
-                                <span class="text-xs text-[#1B4332]/70 font-semibold block">Water Tank</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70 font-semibold block">Water Tank</span>
                                 <span class="text-2xl font-extrabold text-[#1B4332] mt-1 block">88 %</span>
-                                <span class="text-[11px] text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
+                                <span class="text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#2D6A4F] font-medium flex items-center gap-1 mt-1">
                                     ✓ Reservoir Full
                                 </span>
                             </div>
@@ -618,12 +612,12 @@
                             
                             <!-- Telemetry Chart Mockup (SVG line chart) -->
                             <div class="lg:col-span-8 p-6 rounded-2xl bg-white border border-[#2D6A4F]/10 shadow-sm space-y-4">
-                                <div class="flex items-center justify-between">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <div>
                                         <h4 class="text-base font-bold text-[#1B4332]">24-Hour Telemetry Analytics</h4>
-                                        <p class="text-xs text-[#1B4332]/70">Water Temperature vs. Solution pH</p>
+                                        <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Water Temperature vs. Solution pH</p>
                                     </div>
-                                    <div class="flex items-center gap-4 text-xs font-semibold">
+                                    <div class="flex items-center gap-4 text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold">
                                         <span class="flex items-center gap-1.5 text-[#2D6A4F]">
                                             <span class="w-3 h-0.5 bg-[#2D6A4F] rounded-full"></span> pH Level
                                         </span>
@@ -661,7 +655,7 @@
                                         <circle cx="350" cy="48" r="4" fill="#2D6A4F" stroke="#FFFFFF" stroke-width="2"/>
                                     </svg>
                                 </div>
-                                <div class="flex justify-between text-[11px] text-[#1B4332]/60 font-mono pt-2">
+                                <div class="flex justify-between text-xs sm:text-[11px] lg:text-xs lg:leading-4 text-[#1B4332]/60 font-mono pt-2">
                                     <span>00:00</span>
                                     <span>04:00</span>
                                     <span>08:00</span>
@@ -680,43 +674,43 @@
                                     <!-- Actuator Item 1 -->
                                     <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] flex items-center justify-center font-bold text-xs">
+                                            <div class="w-8 h-8 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] flex items-center justify-center font-bold text-[13px] sm:text-xs lg:text-sm lg:leading-5">
                                                 P1
                                             </div>
                                             <div>
-                                                <p class="text-xs font-bold text-[#1B4332]">Nutrient Pump A</p>
-                                                <p class="text-[10px] text-[#1B4332]/70">Dosing Interval: 15m</p>
+                                                <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold text-[#1B4332]">Nutrient Pump A</p>
+                                                <p class="text-xs sm:text-[10px] lg:text-xs lg:leading-4 text-[#1B4332]/70">Dosing Interval: 15m</p>
                                             </div>
                                         </div>
-                                        <span class="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-[#1B4332] rounded-full">ACTIVE</span>
+                                        <span class="px-2 py-0.5 text-xs sm:text-[10px] lg:text-xs lg:leading-4 font-bold bg-emerald-100 text-[#1B4332] rounded-full">ACTIVE</span>
                                     </div>
 
                                     <!-- Actuator Item 2 -->
                                     <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] flex items-center justify-center font-bold text-xs">
+                                            <div class="w-8 h-8 rounded-lg bg-[#2D6A4F]/10 text-[#2D6A4F] flex items-center justify-center font-bold text-[13px] sm:text-xs lg:text-sm lg:leading-5">
                                                 F1
                                             </div>
                                             <div>
-                                                <p class="text-xs font-bold text-[#1B4332]">Cooling Intake Fan</p>
-                                                <p class="text-[10px] text-[#1B4332]/70">VPD Auto Controller</p>
+                                                <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold text-[#1B4332]">Cooling Intake Fan</p>
+                                                <p class="text-xs sm:text-[10px] lg:text-xs lg:leading-4 text-[#1B4332]/70">VPD Auto Controller</p>
                                             </div>
                                         </div>
-                                        <span class="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-[#1B4332] rounded-full">RUNNING</span>
+                                        <span class="px-2 py-0.5 text-xs sm:text-[10px] lg:text-xs lg:leading-4 font-bold bg-emerald-100 text-[#1B4332] rounded-full">RUNNING</span>
                                     </div>
 
                                     <!-- Actuator Item 3 -->
                                     <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-xs">
+                                            <div class="w-8 h-8 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-[13px] sm:text-xs lg:text-sm lg:leading-5">
                                                 P2
                                             </div>
                                             <div>
-                                                <p class="text-xs font-bold text-[#1B4332]">pH Adjuster Pump</p>
-                                                <p class="text-[10px] text-[#1B4332]/70">Standby (pH Normal)</p>
+                                                <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold text-[#1B4332]">pH Adjuster Pump</p>
+                                                <p class="text-xs sm:text-[10px] lg:text-xs lg:leading-4 text-[#1B4332]/70">Standby (pH Normal)</p>
                                             </div>
                                         </div>
-                                        <span class="px-2 py-0.5 text-[10px] font-bold bg-gray-200 text-gray-700 rounded-full">IDLE</span>
+                                        <span class="px-2 py-0.5 text-xs sm:text-[10px] lg:text-xs lg:leading-4 font-bold bg-gray-200 text-gray-700 rounded-full">IDLE</span>
                                     </div>
 
                                 </div>
@@ -739,10 +733,10 @@
                 <div class="grid lg:grid-cols-12 gap-12 items-center">
                     
                     <div class="lg:col-span-6 space-y-6">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold tracking-normal sm:tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
                             Academic & Technical Innovation
                         </span>
-                        <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight">
+                        <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-normal">
                             The Science of Automated Lettuce Hydroponics
                         </h2>
                         <p class="text-base text-[#1B4332]/80 leading-relaxed">
@@ -751,26 +745,26 @@
                         
                         <div class="space-y-4 pt-2">
                             <div class="flex items-start gap-3">
-                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold shrink-0">✓</div>
                                 <div>
-                                    <h4 class="text-sm font-bold text-[#1B4332]">Precision Nutrient Control</h4>
-                                    <p class="text-xs text-[#1B4332]/70">Eliminates manual testing errors with continuous electrical conductivity tracking.</p>
+                                    <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">Precision Nutrient Control</h4>
+                                    <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Eliminates manual testing errors with continuous electrical conductivity tracking.</p>
                                 </div>
                             </div>
 
                             <div class="flex items-start gap-3">
-                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold shrink-0">✓</div>
                                 <div>
-                                    <h4 class="text-sm font-bold text-[#1B4332]">Hardware Resilience</h4>
-                                    <p class="text-xs text-[#1B4332]/70">Dual-core ESP32 microcontrollers ensure 24/7 continuous operation even during transient network drops.</p>
+                                    <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">Hardware Resilience</h4>
+                                    <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Dual-core ESP32 microcontrollers ensure 24/7 continuous operation even during transient network drops.</p>
                                 </div>
                             </div>
 
                             <div class="flex items-start gap-3">
-                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+                                <div class="mt-1 w-5 h-5 rounded-full bg-[#2D6A4F] text-white flex items-center justify-center text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold shrink-0">✓</div>
                                 <div>
-                                    <h4 class="text-sm font-bold text-[#1B4332]">Modern Stack Architecture</h4>
-                                    <p class="text-xs text-[#1B4332]/70">Constructed with Livewire 3 reactive components and Tailwind CSS.</p>
+                                    <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">Modern Stack Architecture</h4>
+                                    <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Constructed with Livewire 3 reactive components and Tailwind CSS.</p>
                                 </div>
                             </div>
                         </div>
@@ -779,9 +773,9 @@
                     <!-- Right Stack Diagram Visual -->
                     <div class="lg:col-span-6">
                         <div class="p-8 rounded-3xl glass-card border border-[#2D6A4F]/15 shadow-xl space-y-6">
-                            <h3 class="text-lg font-bold text-[#1B4332] pb-2 border-b border-[#2D6A4F]/10 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-[#1B4332] pb-2 border-b border-[#2D6A4F]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0">
                                 <span>System Architecture</span>
-                                <span class="text-xs font-mono text-[#40916C]">End-to-End IoT Pipeline</span>
+                                <span class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-mono text-[#40916C]">End-to-End IoT Pipeline</span>
                             </h3>
 
                             <!-- Architecture Steps -->
@@ -791,8 +785,8 @@
                                         01
                                     </div>
                                     <div>
-                                        <h4 class="text-sm font-bold text-[#1B4332]">ESP32 Hardware & Sensors</h4>
-                                        <p class="text-xs text-[#1B4332]/70">Analog pH Probe • EC Sensor • DS18B20 Water Temp • DHT22 Ambient</p>
+                                        <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">ESP32 Hardware & Sensors</h4>
+                                        <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Analog pH Probe • EC Sensor • DS18B20 Water Temp • DHT22 Ambient</p>
                                     </div>
                                 </div>
 
@@ -801,8 +795,8 @@
                                         02
                                     </div>
                                     <div>
-                                        <h4 class="text-sm font-bold text-[#1B4332]">Secure Telemetry Gateway</h4>
-                                        <p class="text-xs text-[#1B4332]/70">REST API & Real-time WebSockets packet transmission</p>
+                                        <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">Secure Telemetry Gateway</h4>
+                                        <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">REST API & Real-time WebSockets packet transmission</p>
                                     </div>
                                 </div>
 
@@ -811,8 +805,8 @@
                                         03
                                     </div>
                                     <div>
-                                        <h4 class="text-sm font-bold text-[#1B4332]">Project L.E.A.F. + Livewire 3 Application</h4>
-                                        <p class="text-xs text-[#1B4332]/70">Real-time reactive dashboard, persistent database logging & automated relays</p>
+                                        <h4 class="text-sm lg:text-base lg:leading-6 font-bold text-[#1B4332]">Project L.E.A.F. + Livewire 3 Application</h4>
+                                        <p class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#1B4332]/70">Real-time reactive dashboard, persistent database logging & automated relays</p>
                                     </div>
                                 </div>
                             </div>
@@ -837,11 +831,11 @@
                     <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-[#40916C]/30 rounded-full blur-3xl pointer-events-none"></div>
 
                     <div class="relative z-10 max-w-3xl mx-auto space-y-6">
-                        <span class="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-[#95D5B2] border border-white/10 backdrop-blur-md">
+                        <span class="inline-flex items-center px-3.5 py-1.5 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold uppercase tracking-normal sm:tracking-wider bg-white/10 text-[#95D5B2] border border-white/10 backdrop-blur-md">
                             🌱 Automated Farm Management
                         </span>
                         
-                        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-normal leading-tight">
                             Ready to monitor your hydroponic farm?
                         </h2>
                         
@@ -888,13 +882,13 @@
         <section id="developers" class="py-20 sm:py-24 bg-white/80 border-t border-[#2D6A4F]/10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold tracking-normal sm:tracking-wider uppercase bg-[#2D6A4F]/10 text-[#2D6A4F]">
                         Development Team
                     </span>
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-normal">
                         Built by the Project L.E.A.F. Developers
                     </h2>
-                    <p class="text-base sm:text-lg text-[#1B4332]/75">
+                    <p class="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-7 text-[#1B4332]/75">
                         The people behind the dashboard, telemetry pipeline, and hydroponic automation stack.
                     </p>
                 </div>
@@ -906,7 +900,7 @@
                         </div>
                         <div class="p-4 sm:p-5">
                             <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Myra A. Bangaoil</h3>
-                            <p class="text-xs sm:text-sm text-[#1B4332]/70">QA tester</p>
+                            <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/70">QA tester</p>
                         </div>
                     </div>
 
@@ -916,7 +910,7 @@
                         </div>
                         <div class="p-4 sm:p-5">
                             <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Rory M. Barnachea</h3>
-                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Technical Writer</p>
+                            <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/70">Technical Writer</p>
                         </div>
                     </div>
 
@@ -926,7 +920,7 @@
                         </div>
                         <div class="p-4 sm:p-5">
                             <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Christian C. Lagrana</h3>
-                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Programmer</p>
+                            <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/70">Programmer</p>
                         </div>
                     </div>
 
@@ -936,7 +930,7 @@
                         </div>
                         <div class="p-4 sm:p-5">
                             <h3 class="text-base sm:text-lg font-bold text-[#1B4332]">Racman N. Montes</h3>
-                            <p class="text-xs sm:text-sm text-[#1B4332]/70">Project Manager</p>
+                            <p class="text-sm lg:text-base lg:leading-6 text-[#1B4332]/70">Project Manager</p>
                         </div>
                     </div>
                 </div>
@@ -957,31 +951,31 @@
                             <div class="w-9 h-9 rounded-xl bg-[#2D6A4F] flex items-center justify-center text-white">
                                 🌱
                             </div>
-                            <span class="text-xl font-bold text-white tracking-tight">Project L.E.A.F.</span>
+                            <span class="text-xl font-bold text-white tracking-normal">Project L.E.A.F.</span>
                         </div>
-                        <p class="text-xs sm:text-sm text-[#95D5B2]/80 leading-relaxed max-w-md">
+                        <p class="text-sm lg:text-base lg:leading-6 text-[#95D5B2]/80 leading-relaxed max-w-md">
                             Lettuce Environment Automation & Farming. An IoT-Based Hydroponic Cultivation System designed for precision monitoring, real-time sensor analytics, and environmental automation.
                         </p>
                     </div>
 
                     <!-- Tech Stack Specification Badges -->
                     <div class="md:col-span-6 space-y-3">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-[#95D5B2]">System Architecture Specs</h4>
+                        <h4 class="text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-bold uppercase tracking-normal sm:tracking-wider text-[#95D5B2]">System Architecture Specs</h4>
                         <div class="flex flex-wrap gap-2">
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Project L.E.A.F.</span>
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Volt</span>
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Livewire 3</span>
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">ESP32</span>
-                            <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Tailwind CSS</span>
+                            <span class="px-3 py-1.5 rounded-lg text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Project L.E.A.F.</span>
+                            <span class="px-3 py-1.5 rounded-lg text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Volt</span>
+                            <span class="px-3 py-1.5 rounded-lg text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Livewire 3</span>
+                            <span class="px-3 py-1.5 rounded-lg text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">ESP32</span>
+                            <span class="px-3 py-1.5 rounded-lg text-[13px] sm:text-xs lg:text-sm lg:leading-5 font-semibold bg-[#2D6A4F]/60 text-white border border-[#2D6A4F]">Tailwind CSS</span>
                         </div>
                     </div>
 
                 </div>
 
                 <!-- Footer Copyright & Legal -->
-                <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#95D5B2]/70 gap-4">
+                <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-[13px] sm:text-xs lg:text-sm lg:leading-5 text-[#95D5B2]/70 gap-4">
                     <p>© 2026 Project L.E.A.F. All rights reserved.</p>
-                    <p class="font-mono text-[11px]">IoT Hydroponic Cultivation & Automation Platform</p>
+                    <p class="font-mono text-xs sm:text-[11px] lg:text-xs lg:leading-4">IoT Hydroponic Cultivation & Automation Platform</p>
                 </div>
 
             </div>

@@ -19,7 +19,7 @@ class Users extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->isSuperAdmin() || auth()->user()?->hasRole('administrator'), 403);
+        abort_unless(auth()->user()?->isAdmin(), 403);
     }
 
     public function save(): void
@@ -41,7 +41,7 @@ class Users extends Component
         $role = Role::findOrFail($this->roleId);
         $currentUser = auth()->user();
         if ($user->exists && $user->is($currentUser)) {
-            abort_unless($this->isActive && $role->slug === config('rbac.super_admin_role', 'super-admin'), 403);
+            abort_unless($this->isActive && $role->slug === config('rbac.admin_role', 'admin'), 403);
         }
         $wasNew = ! $user->exists;
         $user->name = $this->name;
@@ -61,7 +61,7 @@ class Users extends Component
         );
 
         $this->resetForm();
-        session()->flash('status', $wasNew ? 'Farmer created.' : 'Farmer updated.');
+        session()->flash('status', $wasNew ? 'User created.' : 'User updated.');
     }
 
     public function edit(int $id): void
@@ -78,7 +78,7 @@ class Users extends Component
     public function toggleActive(int $id): void
     {
         $user = User::findOrFail($id);
-        abort_unless(! $user->is(auth()->user()) && ! $user->isSuperAdmin(), 403);
+        abort_unless(! $user->is(auth()->user()) && ! $user->isAdmin(), 403);
         $user->update(['is_active' => ! $user->is_active]);
         ActivityLogger::log('User update', $user->email, ['user_id' => $user->id, 'is_active' => $user->is_active], user: $user);
     }
@@ -92,7 +92,7 @@ class Users extends Component
     public function render()
     {
         return view('livewire.admin.users', [
-            'users' => User::query()->with('roles')->latest()->get(),
+            'users' => User::query()->with(['roles', 'greenhouse'])->latest()->get(),
             'roles' => Role::query()->orderBy('name')->get(),
         ]);
     }

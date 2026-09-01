@@ -5,9 +5,11 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\DashboardTelemetryController;
 use App\Http\Controllers\CameraStreamUrlController;
+use App\Livewire\SettingsPage;
 use App\Livewire\Dashboard\DeviceStatus;
 use App\Livewire\Admin\ActivityLogs;
 use App\Livewire\Admin\AdminDashboard;
+use App\Livewire\Admin\ParameterLogs;
 use App\Livewire\Admin\Users;
 
 Route::view('/', 'welcome');
@@ -20,6 +22,8 @@ Route::middleware(['auth', 'active', 'verified'])->group(function () {
 
     Route::middleware('can:admin-panel')->group(function () {
         Route::get('/admin', AdminDashboard::class)->name('admin.dashboard');
+        Route::get('/admin/parameter-logs', ParameterLogs::class)->name('admin.parameter-logs');
+        Route::get('/admin/system-parameters', SettingsPage::class)->name('admin.system-parameters');
         Route::get('/admin/users', Users::class)->name('admin.users');
         Route::get('/admin/activity-logs', ActivityLogs::class)->name('admin.activity-logs');
     });

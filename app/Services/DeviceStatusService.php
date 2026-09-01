@@ -194,44 +194,61 @@ class DeviceStatusService
     /**
      * Build actuator control cards list.
      */
-    public function buildActuatorCards(?Telemetry $telemetry = null): array
+    public function buildActuatorCards(?Device $device = null): array
     {
-        return [
+        $definitions = [
             [
                 'name' => 'Nutrient Dosing Pump A',
                 'detail' => 'Relay · Primary nutrient dosing',
                 'command' => 'nutrient_a',
-                'status' => 'OFF',
-                'statusType' => 'standby',
+                'dbColumn' => 'actuator_nutrient_pump_a',
             ],
             [
                 'name' => 'Nutrient Dosing Pump B',
                 'detail' => 'Relay · Secondary nutrient dosing',
                 'command' => 'nutrient_b',
-                'status' => 'OFF',
-                'statusType' => 'standby',
+                'dbColumn' => 'actuator_nutrient_pump_b',
             ],
             [
                 'name' => 'pH Up Dosing Pump',
                 'detail' => 'Relay · pH increase dosing',
                 'command' => 'ph_up',
-                'status' => 'OFF',
-                'statusType' => 'standby',
+                'dbColumn' => 'actuator_ph_up_pump',
             ],
             [
                 'name' => 'pH Down Dosing Pump',
                 'detail' => 'Relay · pH decrease dosing',
                 'command' => 'ph_down',
-                'status' => 'OFF',
-                'statusType' => 'standby',
+                'dbColumn' => 'actuator_ph_down_pump',
             ],
             [
                 'name' => 'VPD Intake Cooling Fan',
                 'detail' => 'Relay · Temperature regulation',
                 'command' => 'cooling_fan',
-                'status' => 'OFF',
-                'statusType' => 'standby',
+                'dbColumn' => 'actuator_cooling_fan',
             ],
         ];
+
+        $isOnline = $device?->is_online ?? false;
+
+        $cards = array_map(function (array $def) use ($device, $isOnline): array {
+            $isOn = false;
+            if ($isOnline && $device !== null) {
+                $isOn = (bool) $device->{$def['dbColumn']};
+            }
+
+            return [
+                'name' => $def['name'],
+                'detail' => $def['detail'],
+                'command' => $def['command'],
+                'status' => $isOn ? 'ON' : 'OFF',
+                'statusType' => $isOn ? 'online' : 'standby',
+            ];
+        }, $definitions);
+
+        $onCards = array_filter($cards, fn (array $card): bool => $card['status'] === 'ON');
+        $offCards = array_filter($cards, fn (array $card): bool => $card['status'] !== 'ON');
+
+        return array_values(array_merge($onCards, $offCards));
     }
 }

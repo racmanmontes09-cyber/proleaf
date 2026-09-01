@@ -245,4 +245,74 @@ class DashboardTelemetryReadingsTest extends TestCase
             ->assertJsonCount(0, 'readings')
             ->assertJsonPath('latest_kpis', null);
     }
+
+    public function test_dashboard_telemetry_readings_accept_configured_visible_point_limit(): void
+    {
+        $user = User::factory()->create();
+        $device = Device::create([
+            'device_id' => 'LEAF-LIMIT-720',
+            'name' => 'Limit Device',
+            'last_seen_at' => now(),
+        ]);
+
+        foreach (range(1, 3) as $index) {
+            $device->telemetries()->create([
+                'ph' => 6 + ($index / 10),
+                'measured_at' => now()->subSeconds(4 - $index),
+            ]);
+        }
+
+        $configuredMaxPoints = (int) config('leaf.dashboard.live_chart.max_points');
+        $this->assertSame(720, $configuredMaxPoints);
+
+        $this->actingAs($user)
+            ->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&limit=720')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(3, 'readings');
+    }
+
+    public function test_dashboard_telemetry_readings_reject_limit_above_configured_dashboard_max(): void
+    {
+        $user = User::factory()->create();
+        $device = Device::create([
+            'device_id' => 'LEAF-LIMIT-MAX',
+            'name' => 'Limit Device',
+            'last_seen_at' => now(),
+        ]);
+
+        $maxLimit = max(
+            (int) config('leaf.dashboard.live_chart.max_points'),
+            (int) config('leaf.dashboard.live_chart.buffer_points'),
+            (int) config('leaf.dashboard.live_chart.poll_batch_limit'),
+        );
+
+        $response = $this->actingAs($user)
+            ->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&limit='.($maxLimit + 1));
+
+        $this->assertSame(422, $response->status());
+        $this->assertArrayHasKey('limit', $response->json('errors'));
+    }
+
+    public function test_dashboard_telemetry_readings_honor_overridden_configured_max_points(): void
+    {
+        config([
+            'leaf.dashboard.live_chart.max_points' => 800,
+            'leaf.dashboard.live_chart.buffer_points' => 800,
+            'leaf.dashboard.live_chart.poll_batch_limit' => 120,
+        ]);
+
+        $user = User::factory()->create();
+        $device = Device::create([
+            'device_id' => 'LEAF-LIMIT-CONFIG',
+            'name' => 'Limit Device',
+            'last_seen_at' => now(),
+        ]);
+        $device->telemetries()->create(['ph' => 6.2, 'measured_at' => now()]);
+
+        $this->actingAs($user)
+            ->getJson('/dashboard/telemetry/readings?device_id='.$device->id.'&limit=800')
+            ->assertOk()
+            ->assertJsonCount(1, 'readings');
+    }
 }

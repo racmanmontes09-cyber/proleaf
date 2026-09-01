@@ -1,5 +1,6 @@
 <?php
 
 return [
-    'super_admin_role' => env('RBAC_SUPER_ADMIN_ROLE', 'super-admin'),
+    'admin_role' => env('RBAC_ADMIN_ROLE', 'admin'),
+    'viewer_role' => env('RBAC_VIEWER_ROLE', 'viewer'),
 ];

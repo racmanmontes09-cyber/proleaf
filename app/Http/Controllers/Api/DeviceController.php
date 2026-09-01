@@ -30,7 +30,9 @@ class DeviceController extends Controller
         ];
 
         $updates = array_intersect_key($validated, array_flip($heartbeatFields));
-        $updates['last_seen_at'] = now();
+        $now = now();
+        $updates['last_seen_at'] = $now;
+        $updates['device_token_last_used_at'] = $now;
 
         $device->forceFill($updates)->save();
 

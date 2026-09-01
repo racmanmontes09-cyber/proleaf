@@ -9,9 +9,10 @@ return [
         ],
     ],
     'device_status' => [
-        // The firmware heartbeat is 4 seconds; allow one missed heartbeat
-        // plus transport and scheduler jitter before showing offline.
-        'online_grace_seconds' => (int) env('LEAF_DEVICE_ONLINE_GRACE_SECONDS', 10),
+        // Grace period must exceed the maximum expected heartbeat interval
+        // plus network/MQTT jitter.  The backend also applies adaptive
+        // scaling via Device::effectiveOnlineGraceSeconds().
+        'online_grace_seconds' => (int) env('LEAF_DEVICE_ONLINE_GRACE_SECONDS', 60),
     ],
     'dashboard' => [
         'device_db_id' => (int) env('LEAF_DASHBOARD_DEVICE_DB_ID', 358),
@@ -48,6 +49,7 @@ return [
             'status' => env('MQTT_TOPIC_STATUS', 'leaf/devices/+/status'),
             'results' => env('MQTT_TOPIC_RESULTS', 'leaf/devices/+/results'),
             'commands' => env('MQTT_TOPIC_COMMANDS', 'leaf/devices/{device_id}/commands'),
+            'settings' => env('MQTT_TOPIC_SETTINGS', 'leaf/devices/{device_id}/settings'),
         ],
     ],
     'simulation' => [

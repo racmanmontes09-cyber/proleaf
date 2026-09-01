@@ -115,11 +115,15 @@ class DashboardService
             ->contains(fn (array $series): bool => ! empty($series['data']));
 
         $alerts = $device ? $this->alertService->getActiveAlertsForDevice($device, $alertSeverityFilter) : [];
-        $monitoringSensors = $this->telemetryService->buildMonitoringSensors($latestTelemetry, $thresholds);
+        $monitoringSensors = array_values(array_filter(
+            $this->telemetryService->buildMonitoringSensors($latestTelemetry, $thresholds),
+            fn (array $sensor): bool => ($sensor['name'] ?? '') !== 'Relative Air Humidity',
+        ));
         $monitoringSensorsBadgeLabel = $monitoringSensors === [] ? 'Waiting for sensor data...' : count($monitoringSensors).' Sensors';
 
         $deviceCards = $this->deviceStatusService->buildDeviceCards($devices);
-        $actuatorCards = $this->deviceStatusService->buildActuatorCards($latestTelemetry);
+        $actuatorCards = $this->deviceStatusService->buildActuatorCards($device);
+        $actuatorOnCount = count(array_filter($actuatorCards, fn (array $card): bool => ($card['status'] ?? null) === 'ON'));
         $pendingCommandCount = $device ? $this->deviceCommandService->getPendingCommandCount($device) : 0;
         $alertBadgeLabel = $latestTelemetry === null
             ? 'Waiting'
@@ -210,6 +214,7 @@ class DashboardService
             'monitoringSensorsBadgeLabel' => $monitoringSensorsBadgeLabel,
             'deviceCards' => $deviceCards,
             'actuatorCards' => $actuatorCards,
+            'actuatorOnCount' => $actuatorOnCount,
         ]);
     }
 
@@ -267,7 +272,7 @@ class DashboardService
         }
 
         $user = auth()->user();
-        if ($user && $user->isFarmer() && ! $user->isSuperAdmin()) {
+        if ($user && ! $user->isAdmin() && $user->hasGreenhouseAssignment()) {
             $farmerGh = $user->greenhouses()->with('devices.latestTelemetry')->first() ?? $user->greenhouse;
             if ($farmerGh) {
                 $farmerDevice = $farmerGh->devices()->with('latestTelemetry')->latest('last_seen_at')->first()

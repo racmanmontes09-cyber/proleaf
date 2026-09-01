@@ -33,7 +33,7 @@
                 </div>
 
                 <p style="font-size: 14px; line-height: 1.5; color: #2D6A4F; margin: 0 0 16px 0;">
-                    Hello Super Admin,
+                    Hello Admin,
                 </p>
                 <p style="font-size: 14px; line-height: 1.5; color: #374151; margin: 0 0 20px 0;">
                     A greenhouse in Project L.E.A.F. has transitioned from <strong>ONLINE &rarr; OFFLINE</strong>. Please find the details below:
@@ -68,7 +68,7 @@
                 </table>
 
                 <div style="text-align: center; margin-bottom: 24px;">
-                    <a href="{{ route('admin.dashboard') }}" style="display: inline-block; background-color: #2D6A4F; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;">Open Super Admin Console</a>
+                    <a href="{{ route('admin.dashboard') }}" style="display: inline-block; background-color: #2D6A4F; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;">Open Admin Console</a>
                 </div>
             </td>
         </tr>

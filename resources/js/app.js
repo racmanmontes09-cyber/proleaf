@@ -195,6 +195,8 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             waterTemp: [],
             ec: [],
             airTemp: [],
+            waterFlow: [],
+            waterLevel: [],
             humidity: [],
         },
         analyticsData: {
@@ -236,20 +238,15 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.renderOrUpdateCharts(initialPayload);
             this.listenToPusher();
 
-            if (!this.useEchoTelemetry) {
-                console.log('[Realtime] Echo disabled, starting HTTP polling fallback');
+            // Realtime backbone: always run incremental HTTP polling (after_id) so new
+            // telemetry reaches the KPI cards and charts even when the websocket path is
+            // unavailable (e.g. broadcast events queued without a processing worker).
+            // Echo remains attached as an accelerator; seenReadingIds/lastReadingId
+            // de-duplication prevents double-points when both transports deliver the
+            // same reading.
+            if (this.shouldUseTelemetryPolling()) {
+                console.log('[Realtime] Starting incremental telemetry HTTP polling from id', this.lastReadingId);
                 this.startTelemetryPolling();
-            } else {
-                console.log('[Realtime] Echo enabled, polling will only start if subscription fails');
-                if (this.pollingFallbackEnabled) {
-                    const fallbackDelayMs = 5000;
-                    window.setTimeout(() => {
-                        if (!this.destroyed && !this.realtimeConnected && !this.polling) {
-                            console.log('[Realtime] Echo did not connect within', fallbackDelayMs, 'ms, starting polling fallback');
-                            this.startTelemetryPolling();
-                        }
-                    }, fallbackDelayMs);
-                }
             }
         },
         async fetchTelemetryHistoryPayload(fallbackPayload = {}) {
@@ -627,7 +624,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                 ph: this.toNullableNumber(reading.ph),
                 ec: this.toNullableNumber(reading.ec),
                 water_flow: this.toNullableNumber(reading.water_flow),
-                water_level: this.toNullableNumber(reading.water_level),
+                water_level: this.normalizeWaterLevel(this.toNullableNumber(reading.water_level)),
             };
         },
         hasMeaningfulTelemetryValues(reading) {
@@ -680,6 +677,8 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             this.overviewData.waterTemp.push(this.point(reading, 'water_temperature'));
             this.overviewData.ec.push(this.point(reading, 'ec'));
             this.overviewData.airTemp.push(this.point(reading, 'air_temperature'));
+            this.overviewData.waterFlow.push(this.point(reading, 'water_flow'));
+            this.overviewData.waterLevel.push(this.point(reading, 'water_level'));
             this.overviewData.humidity.push(this.point(reading, 'humidity'));
 
             this.analyticsData.airTemp.push(this.point(reading, 'air_temperature'));
@@ -1091,31 +1090,31 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return this.kpis[key]?.trend ?? 'Waiting for sensor data...';
         },
         kpiCardClass(key) {
-            return this.kpiPulse[key] ? 'ring-2 ring-[#95D5B2]/70 shadow-md' : '';
+            return this.kpiPulse[key] ? 'ring-2 ring-leaf-300/70 shadow-md' : '';
         },
         kpiValueClass(key) {
-            return this.kpiPulse[key] ? 'text-[#2D6A4F] scale-[1.03]' : '';
+            return this.kpiPulse[key] ? 'text-[#2D6A4F] dark:text-leaf-300 scale-[1.03]' : '';
         },
         kpiStatusBadgeClass(key) {
             const type = this.kpis[key]?.statusType || 'standby';
 
             if (['online', 'success', 'active', 'running'].includes(type)) {
-                return 'text-emerald-700';
+                return 'text-emerald-700 dark:text-emerald-400';
             }
 
             if (['offline', 'error', 'critical'].includes(type)) {
-                return 'text-rose-700';
+                return 'text-rose-700 dark:text-rose-400';
             }
 
             if (type === 'warning') {
-                return 'text-amber-700';
+                return 'text-amber-700 dark:text-amber-400';
             }
 
             if (type === 'info') {
-                return 'text-[#2D6A4F]';
+                return 'text-[#2D6A4F] dark:text-leaf-300';
             }
 
-            return 'text-slate-600';
+            return 'text-slate-600 dark:text-slate-400';
         },
         kpiStatusDotClass(key) {
             const type = this.kpis[key]?.statusType || 'standby';
@@ -1176,6 +1175,11 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         renderCharts() {
             if (this.destroyed) {
                 return;
+            }
+
+            if (!this._themeBoundHandler) {
+                this._themeBoundHandler = () => this.onThemeChanged();
+                window.addEventListener('leaf-theme-changed', this._themeBoundHandler);
             }
 
             const chartEl = document.querySelector('#telemetryOverviewChart');
@@ -1280,13 +1284,80 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
         destroy() {
             console.log('[Realtime] destroying telemetry dashboard');
             this.destroyed = true;
+            if (this._themeBoundHandler) {
+                window.removeEventListener('leaf-theme-changed', this._themeBoundHandler);
+                this._themeBoundHandler = null;
+            }
             this.stopTelemetryPolling();
             this.leaveTelemetryChannel();
             this.destroyCharts();
             Object.values(this.kpiPulseTimers).forEach((timer) => window.clearTimeout(timer));
             this.kpiPulseTimers = {};
         },
+        isDark() {
+            return document.documentElement.classList.contains('dark');
+        },
+        chartTextColor() {
+            return this.isDark() ? '#E2E8F0' : '#1B4332';
+        },
+        chartGridColor() {
+            return this.isDark() ? 'rgba(148, 163, 184, 0.14)' : '#E5E7EB';
+        },
+        chartLineColor() {
+            return this.isDark() ? '#74C69D' : '#2D6A4F';
+        },
+        chartSeriesPrimary() {
+            return this.isDark() ? '#74C69D' : '#1B4332';
+        },
+        chartTooltipTheme() {
+            return this.isDark() ? 'dark' : 'light';
+        },
+        rethemeCharts() {
+            if (this.destroyed) {
+                return;
+            }
+
+            const theme = { mode: this.chartTooltipTheme() };
+            const text = this.chartTextColor();
+            const grid = this.chartGridColor();
+            const line = this.chartLineColor();
+
+            const apply = (chart) => {
+                if (!chart) {
+                    return;
+                }
+
+                chart.updateOptions({
+                    theme,
+                    grid: { borderColor: grid, strokeDashArray: 4 },
+                    xaxis: {
+                        labels: { style: { colors: text } },
+                        crosshairs: { stroke: { color: line, width: 1, dashArray: 3 } },
+                        axisBorder: { show: true, color: grid },
+                        axisTicks: { show: true, color: grid },
+                    },
+                    yaxis: { labels: { style: { colors: text } } },
+                    chart: {
+                        selection: {
+                            fill: { color: line, opacity: 0.1 },
+                            stroke: { color: line, width: 1, dashArray: 3 },
+                        },
+                    },
+                }, false, false);
+            };
+
+            apply(this.charts?.telemetryOverview);
+            apply(this.charts?.analytics);
+            apply(this.charts?.history);
+        },
+        onThemeChanged() {
+            this.$nextTick(() => this.rethemeCharts());
+        },
         baseChartOptions(height, extra = {}) {
+            const isMobileViewport = window.innerWidth < 640;
+            const chartLabelFontSize = isMobileViewport ? '11px' : '12px';
+            const chartLegendFontSize = isMobileViewport ? '11px' : '12px';
+
             return {
                 chart: {
                     height,
@@ -1310,8 +1381,8 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     selection: {
                         enabled: true,
                         type: 'x',
-                        fill: { color: '#2D6A4F', opacity: 0.1 },
-                        stroke: { color: '#2D6A4F', width: 1, dashArray: 3 },
+                        fill: { color: this.chartLineColor(), opacity: 0.1 },
+                        stroke: { color: this.chartLineColor(), width: 1, dashArray: 3 },
                     },
                     events: {
                         zoomed: (chartContext, { xaxis }) => {
@@ -1332,7 +1403,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     type: 'datetime',
                     labels: {
                         datetimeUTC: false,
-                        style: { colors: '#1B4332', fontSize: '10px' },
+                        style: { colors: this.chartTextColor(), fontSize: chartLabelFontSize, fontWeight: 600 },
                         formatter(value) {
                             const d = new Date(value);
                             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1342,13 +1413,13 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                     },
                     crosshairs: {
                         show: true,
-                        stroke: { color: '#2D6A4F', width: 1, dashArray: 3 },
+                        stroke: { color: this.chartLineColor(), width: 1, dashArray: 3 },
                     },
                     tooltip: { enabled: false },
-                    axisBorder: { show: true, color: '#E5E7EB' },
-                    axisTicks: { show: true, color: '#E5E7EB' },
+                    axisBorder: { show: true, color: this.chartGridColor() },
+                    axisTicks: { show: true, color: this.chartGridColor() },
                 },
-                yaxis: { labels: { style: { colors: '#1B4332', fontSize: '10px' } } },
+                yaxis: { labels: { style: { colors: this.chartTextColor(), fontSize: chartLabelFontSize, fontWeight: 600 } } },
                 tooltip: {
                     x: {
                         formatter(value) {
@@ -1358,13 +1429,14 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
                             return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
                         },
                     },
-                    theme: 'light',
+                    theme: this.chartTooltipTheme(),
                 },
-                grid: { borderColor: '#E5E7EB', strokeDashArray: 4 },
+                grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
                 legend: {
                     position: 'top',
                     horizontalAlign: 'right',
-                    fontSize: window.innerWidth < 640 ? '7px' : '10px',
+                    fontSize: chartLegendFontSize,
+                    fontWeight: 600,
                 },
                 ...extra,
             };
@@ -1373,7 +1445,7 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return this.baseChartOptions(280, {
                 series: this.telemetryOverviewSeries(),
                 chart: { ...this.baseChartOptions(280).chart, type: 'area' },
-                colors: ['#2D6A4F', '#40916C', '#95D5B2', '#E76F51', '#264653'],
+                colors: [this.chartLineColor(), '#40916C', '#95D5B2', '#E76F51', '#457B9D', '#6B7280'],
                 fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] } },
                 stroke: { curve: 'smooth', width: 2.5 },
                 xaxis: { ...this.baseChartOptions(280).xaxis, ...this.chartXaxisRange() },
@@ -1383,10 +1455,10 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return this.baseChartOptions(320, {
                 series: this.analyticsSeries(),
                 chart: { ...this.baseChartOptions(320).chart, type: 'line' },
-                stroke: { width: [0, 3, 3], curve: 'smooth' },
-                colors: ['#D8F3DC', '#2D6A4F', '#40916C'],
+                stroke: { width: [0, 3], curve: 'smooth' },
+                colors: ['#D8F3DC', '#40916C'],
                 plotOptions: { bar: { columnWidth: '40%', borderRadius: 6 } },
-                grid: { borderColor: '#F1F5F9' },
+                grid: { borderColor: this.chartGridColor() },
                 xaxis: { ...this.baseChartOptions(320).xaxis, ...this.chartXaxisRange() },
             });
         },
@@ -1394,19 +1466,21 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return this.baseChartOptions(300, {
                 series: this.historySeries(),
                 chart: { ...this.baseChartOptions(300).chart, type: 'line' },
-                colors: ['#1B4332', '#40916C', '#52B788', '#74C69D', '#95D5B2', '#2D6A4F', '#6B7280'],
+                colors: [this.chartSeriesPrimary(), '#52B788', '#74C69D', '#95D5B2', this.chartLineColor(), '#6B7280'],
                 stroke: { curve: 'smooth', width: 2 },
                 fill: { type: 'solid', opacity: 0.08 },
                 xaxis: { ...this.baseChartOptions(300).xaxis, ...this.chartXaxisRange() },
             });
         },
         telemetryOverviewSeries() {
+            const filterNulls = (arr) => arr.filter((p) => p.y !== null);
             const series = [
-                { name: 'Water pH', data: [...this.overviewData.ph] },
-                { name: 'Water Temp (°C)', data: [...this.overviewData.waterTemp] },
-                { name: 'Nutrient EC (mS)', data: [...this.overviewData.ec] },
-                { name: 'Air Temp (°C)', data: [...this.overviewData.airTemp] },
-                { name: 'Humidity (%)', data: [...this.overviewData.humidity] },
+                { name: 'Water pH', data: filterNulls([...this.overviewData.ph]) },
+                { name: 'Water Temp (°C)', data: filterNulls([...this.overviewData.waterTemp]) },
+                { name: 'Nutrient EC (mS)', data: filterNulls([...this.overviewData.ec]) },
+                { name: 'Air Temp (°C)', data: filterNulls([...this.overviewData.airTemp]) },
+                { name: 'Water Flow (L/min)', data: filterNulls([...this.overviewData.waterFlow]) },
+                { name: 'Water Level (%)', data: filterNulls([...this.overviewData.waterLevel]) },
             ];
 
             if (this.selectedOverviewSensor === 'all') {
@@ -1416,21 +1490,21 @@ window.leafDashboardCharts = function leafDashboardCharts(config = {}) {
             return series.filter((entry) => entry.name === this.selectedOverviewSensor);
         },
         analyticsSeries() {
+            const filterNulls = (arr) => arr.filter((p) => p.y !== null);
             return [
-                { name: 'Air Temp (°C)', type: 'column', data: [...this.analyticsData.airTemp] },
-                { name: 'Humidity (%)', type: 'line', data: [...this.analyticsData.humidity] },
-                { name: 'Water Flow (L/min)', type: 'line', data: [...this.analyticsData.waterFlow] },
+                { name: 'Air Temp (°C)', type: 'column', data: filterNulls([...this.analyticsData.airTemp]) },
+                { name: 'Water Flow (L/min)', type: 'line', data: filterNulls([...this.analyticsData.waterFlow]) },
             ];
         },
         historySeries() {
+            const filterNulls = (arr) => arr.filter((p) => p.y !== null);
             return [
-                { name: 'Air Temp (°C)', data: [...this.historyData.airTemp] },
-                { name: 'Humidity (%)', data: [...this.historyData.humidity] },
-                { name: 'Water Temp (°C)', data: [...this.historyData.waterTemp] },
-                { name: 'Water pH', data: [...this.historyData.ph] },
-                { name: 'Nutrient EC (mS)', data: [...this.historyData.ec] },
-                { name: 'Water Flow (L/min)', data: [...this.historyData.waterFlow] },
-                { name: 'Water Level (%)', data: [...this.historyData.waterLevel] },
+                { name: 'Air Temp (°C)', data: filterNulls([...this.historyData.airTemp]) },
+                { name: 'Water Temp (°C)', data: filterNulls([...this.historyData.waterTemp]) },
+                { name: 'Water pH', data: filterNulls([...this.historyData.ph]) },
+                { name: 'Nutrient EC (mS)', data: filterNulls([...this.historyData.ec]) },
+                { name: 'Water Flow (L/min)', data: filterNulls([...this.historyData.waterFlow]) },
+                { name: 'Water Level (%)', data: filterNulls([...this.historyData.waterLevel]) },
             ];
         },
     };
@@ -1460,4 +1534,73 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDashboardClock();
     setInterval(updateDashboardClock, 1000);
 });
+
+document.addEventListener('alpine:init', () => {
+    Alpine.store('theme', {
+        init() {
+            const saved = localStorage.getItem('leaf-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const dark = saved ? saved === 'dark' : prefersDark;
+
+            this.apply(dark, false);
+        },
+
+        get isDark() {
+            return document.documentElement.classList.contains('dark');
+        },
+
+        apply(dark, persist = true) {
+            document.documentElement.classList.toggle('dark', dark);
+            if (persist) {
+                localStorage.setItem('leaf-theme', dark ? 'dark' : 'light');
+            }
+            window.dispatchEvent(new CustomEvent('leaf-theme-changed', { detail: { dark } }));
+        },
+
+        set(dark) {
+            this.apply(dark);
+        },
+
+        toggle() {
+            this.apply(this.isDark ? false : true);
+        },
+    });
+
+    Alpine.store('sidebar', {
+        collapsed: localStorage.getItem('leaf-sidebar-collapsed') === 'true',
+        expanded: false,
+        mobileOpen: false,
+
+        get width() {
+            return this.collapsed ? '64px' : '240px';
+        },
+
+        toggle() {
+            this.collapsed = !this.collapsed;
+            localStorage.setItem('leaf-sidebar-collapsed', String(this.collapsed));
+            if (this.collapsed) {
+                this.expanded = false;
+            }
+        },
+    });
+});
+
+window.adminSidebar = function adminSidebar() {
+    return {
+        get collapsed() { return Alpine.store('sidebar').collapsed; },
+        get expanded() { return Alpine.store('sidebar').expanded; },
+        get mobileOpen() { return Alpine.store('sidebar').mobileOpen; },
+        set collapsed(v) { Alpine.store('sidebar').collapsed = v; },
+        set expanded(v) { Alpine.store('sidebar').expanded = v; },
+        set mobileOpen(v) { Alpine.store('sidebar').mobileOpen = v; },
+
+        toggle() {
+            Alpine.store('sidebar').toggle();
+        },
+
+        init() {
+            this.mobileOpen = false;
+        },
+    };
+};
 

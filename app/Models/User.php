@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Role;
-use App\Models\Permission;
 
 class User extends Authenticatable
 {
@@ -26,7 +23,13 @@ class User extends Authenticatable
      */
     public function hasRole(string $role): bool
     {
-        return $this->roles()->where(function ($q) use ($role) {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(
+                fn (Role $roleModel): bool => $roleModel->slug === $role || $roleModel->name === $role
+            );
+        }
+
+        return $this->roles()->where(function ($q) use ($role): void {
             $q->where('slug', $role)->orWhere('name', $role);
         })->exists();
     }
@@ -35,6 +38,7 @@ class User extends Authenticatable
     {
         if ($role instanceof Role) {
             $this->roles()->syncWithoutDetaching([$role->id]);
+            $this->forgetRoleRelations();
             return;
         }
 
@@ -42,6 +46,7 @@ class User extends Authenticatable
 
         if ($roleModel) {
             $this->roles()->syncWithoutDetaching([$roleModel->id]);
+            $this->forgetRoleRelations();
         }
     }
 
@@ -49,6 +54,7 @@ class User extends Authenticatable
     {
         if ($role instanceof Role) {
             $this->roles()->detach($role->id);
+            $this->forgetRoleRelations();
             return;
         }
 
@@ -56,6 +62,7 @@ class User extends Authenticatable
 
         if ($roleModel) {
             $this->roles()->detach($roleModel->id);
+            $this->forgetRoleRelations();
         }
     }
 
@@ -63,12 +70,20 @@ class User extends Authenticatable
     {
         $ids = Role::whereIn('slug', $roles)->orWhereIn('name', $roles)->pluck('id')->all();
         $this->roles()->sync($ids);
+        $this->forgetRoleRelations();
     }
 
     public function permissions()
     {
-        $roleIds = $this->roles()->pluck('roles.id')->all();
-        return Permission::query()->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))->get();
+        $roleIds = $this->roleIdsForPermissionLookup();
+
+        if ($roleIds === []) {
+            return collect();
+        }
+
+        return Permission::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))
+            ->get();
     }
 
     public function greenhouses(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -93,41 +108,53 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        return Permission::query()->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $this->roles()->pluck('roles.id')->all()))
-            ->where(function ($q) use ($permission) {
+        if ($this->relationLoaded('roles') && $this->roles->every->relationLoaded('permissions')) {
+            return $this->roles->contains(function (Role $role) use ($permission): bool {
+                return $role->permissions->contains(
+                    fn (Permission $permissionModel): bool => $permissionModel->slug === $permission || $permissionModel->name === $permission
+                );
+            });
+        }
+
+        return $this->roles()
+            ->whereHas('permissions', function ($q) use ($permission): void {
                 $q->where('slug', $permission)->orWhere('name', $permission);
-            })->exists();
+            })
+            ->exists();
     }
 
     public function canPerform(string $permission): bool
     {
-        return $this->hasPermission($permission) || $this->hasRole(config('rbac.super_admin_role', 'super-admin'));
+        return $this->isAdmin() || $this->hasPermission($permission);
     }
 
-    public function isSuperAdmin(): bool
+    /**
+     * Determine whether the user has the admin role (full access).
+     */
+    public function isAdmin(): bool
     {
-        return $this->hasRole(config('rbac.super_admin_role', 'super-admin'));
+        return $this->hasRole(config('rbac.admin_role', 'admin'));
     }
 
-    public function isFarmer(): bool
+    /**
+     * Determine whether the user has the viewer role (read-only access).
+     */
+    public function isViewer(): bool
     {
-        return $this->hasRole('farmer') || (! $this->isSuperAdmin() && $this->greenhouse()->exists());
+        return $this->hasRole(config('rbac.viewer_role', 'viewer'));
     }
 
     public function primaryRoleName(): string
     {
-        if ($this->isSuperAdmin()) {
-            return 'Super Admin';
+        if ($this->isAdmin()) {
+            return 'Admin';
         }
 
-        if ($this->hasRole('farmer') || $this->isFarmer()) {
-            return 'Farmer';
-        }
-
-        $roleName = $this->roles->first()?->name ?? 'Farmer';
+        $roleName = $this->roles->first()?->name;
 
         return match ($roleName) {
-            'Telemetry Viewer', 'telemetry-viewer' => 'Viewer',
+            'Telemetry Viewer', 'telemetry-viewer', 'Viewer', 'viewer' => 'Viewer',
+            null, '' => 'Viewer',
             default => $roleName,
         };
     }
@@ -160,5 +187,32 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function hasGreenhouseAssignment(): bool
+    {
+        if ($this->relationLoaded('greenhouse')) {
+            return $this->greenhouse !== null;
+        }
+
+        if ($this->relationLoaded('greenhouses')) {
+            return $this->greenhouses->isNotEmpty();
+        }
+
+        return $this->greenhouse()->exists();
+    }
+
+    private function roleIdsForPermissionLookup(): array
+    {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->pluck('id')->all();
+        }
+
+        return $this->roles()->pluck('roles.id')->all();
+    }
+
+    private function forgetRoleRelations(): void
+    {
+        $this->unsetRelation('roles');
     }
 }

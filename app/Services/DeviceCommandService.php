@@ -7,7 +7,6 @@ use App\Models\DeviceCommand;
 use App\Repositories\DeviceCommandRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 class DeviceCommandService
@@ -63,14 +62,12 @@ class DeviceCommandService
 
     public function getPendingCommands(Device $device, int $limit = 20): Collection
     {
-        return $this->commandRepository->pendingForDevice($device)->filter(function (DeviceCommand $command) {
-            return $this->commandHasNotExpired($command);
-        })->values();
+        return $this->commandRepository->pendingForDevice($device, $limit);
     }
 
     public function getPendingCommandCount(Device $device): int
     {
-        return $this->getPendingCommands($device)->count();
+        return $this->commandRepository->countPendingForDevice($device);
     }
 
     public function claimPendingCommands(Device $device, int $limit = 20): Collection
@@ -118,30 +115,18 @@ class DeviceCommandService
 
     public function expireStaleCommands(): int
     {
-        $expired = DeviceCommand::query()
+        return DeviceCommand::query()
             ->where('status', DeviceCommand::STATUS_PENDING)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
-            ->get();
-
-        foreach ($expired as $command) {
-            $this->commandRepository->expire($command);
-        }
-
-        return $expired->count();
+            ->update([
+                'status' => DeviceCommand::STATUS_EXPIRED,
+                'updated_at' => now(),
+            ]);
     }
 
     protected function formatCommandTitle(string $command): string
     {
         return ucwords(str_replace('_', ' ', $command));
-    }
-
-    protected function commandHasNotExpired(DeviceCommand $command): bool
-    {
-        if ($command->expires_at === null) {
-            return true;
-        }
-
-        return $command->expires_at->isFuture();
     }
 }

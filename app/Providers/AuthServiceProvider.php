@@ -27,7 +27,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::before(function ($user, $ability) {
-            if (method_exists($user, 'hasRole') && $user->hasRole(config('rbac.super_admin_role', 'super-admin'))) {
+            if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
                 return true;
             }
         });

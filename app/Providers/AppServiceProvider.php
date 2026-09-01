@@ -6,26 +6,17 @@ use App\Console\Commands\SimulateLeafDashboardTelemetry;
 use App\Console\Commands\SimulateLeafTelemetry;
 use App\Models\Device;
 use App\Models\User;
-use App\Models\DeviceCommand;
-use App\Models\Telemetry;
-use App\Models\Alert;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        Gate::define('admin-panel', fn (User $user): bool => $user->isSuperAdmin() || $user->hasRole('administrator'));
+        Gate::define('admin-panel', fn (User $user): bool => $user->isAdmin());
 
         RateLimiter::for('device-heartbeat', function (Request $request) {
             return Limit::perMinute((int) config('leaf.device_api.rate_limits.heartbeat_per_minute', 60))
@@ -41,7 +32,6 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute((int) config('leaf.device_api.rate_limits.commands_per_minute', 60))
                 ->by($this->deviceRateLimitKey($request));
         });
-
     }
 
     public function register(): void

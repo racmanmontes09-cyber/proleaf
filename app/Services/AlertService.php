@@ -277,7 +277,7 @@ class AlertService
     }
 
     /**
-     * Create an offline alert for a device and dispatch an email to Super Admins.
+     * Create an offline alert for a device and dispatch an email to Admins.
      */
     public function triggerOfflineAlert(Device $device, ?Telemetry $telemetry = null): ?Alert
     {
@@ -353,7 +353,7 @@ class AlertService
     }
 
     /**
-     * Send email to Super Admins notifying that a greenhouse is offline.
+     * Send email to Admins notifying that a greenhouse is offline.
      */
     public function sendOfflineEmail(Device $device, ?Alert $alert = null): void
     {
@@ -366,12 +366,12 @@ class AlertService
             $farmerName = $greenhouse->farmer?->name ?? 'Unassigned';
             $lastSeen = $device->last_seen_at ? $device->last_seen_at->diffForHumans() : 'Never';
 
-            $superAdmins = \App\Models\User::query()
-                ->whereHas('roles', fn ($q) => $q->where('slug', config('rbac.super_admin_role', 'super-admin')))
+            $admins = \App\Models\User::query()
+                ->whereHas('roles', fn ($q) => $q->where('slug', config('rbac.admin_role', 'admin')))
                 ->get();
 
-            if ($superAdmins->isNotEmpty()) {
-                foreach ($superAdmins as $admin) {
+            if ($admins->isNotEmpty()) {
+                foreach ($admins as $admin) {
                     \Illuminate\Support\Facades\Mail::to($admin->email)->send(
                         new \App\Mail\GreenhouseOfflineNotification(
                             greenhouse: $greenhouse,

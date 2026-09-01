@@ -12,7 +12,7 @@ class ActivityLogs extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->isSuperAdmin() || auth()->user()?->hasRole('administrator'), 403);
+        abort_unless(auth()->user()?->isAdmin(), 403);
     }
 
     public function render()

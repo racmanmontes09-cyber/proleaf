@@ -9,7 +9,9 @@ use App\Models\DeviceCommand;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use App\Models\SystemSetting;
 
 class Device extends Model
 {
@@ -44,6 +46,12 @@ class Device extends Model
         'wifi_rssi',
         'uptime_seconds',
         'free_heap',
+        'actuator_cooling_fan',
+        'actuator_nutrient_pump_a',
+        'actuator_nutrient_pump_b',
+        'actuator_ph_up_pump',
+        'actuator_ph_down_pump',
+        'actuator_states_updated_at',
         'last_boot_at',
         'last_seen_at',
     ];
@@ -62,6 +70,12 @@ class Device extends Model
         'device_token_expires_at' => 'datetime',
         'device_token_last_used_at' => 'datetime',
         'device_token_revoked_at' => 'datetime',
+        'actuator_cooling_fan' => 'boolean',
+        'actuator_nutrient_pump_a' => 'boolean',
+        'actuator_nutrient_pump_b' => 'boolean',
+        'actuator_ph_up_pump' => 'boolean',
+        'actuator_ph_down_pump' => 'boolean',
+        'actuator_states_updated_at' => 'datetime',
         'last_boot_at' => 'datetime',
         'last_seen_at' => 'datetime',
     ];
@@ -165,6 +179,9 @@ class Device extends Model
 
     /**
      * Determine if the device is currently online.
+     *
+     * The grace period adapts to the configured heartbeat interval so a
+     * healthy device never appears offline between normal heartbeats.
      */
     public function getIsOnlineAttribute(): bool
     {
@@ -172,6 +189,39 @@ class Device extends Model
             return false;
         }
 
-        return $this->last_seen_at->diffInSeconds(now()) <= config('leaf.device_status.online_grace_seconds', 10);
+        return $this->last_seen_at->diffInSeconds(now()) <= self::effectiveOnlineGraceSeconds();
+    }
+
+    /**
+     * Compute the online grace period: at least the configured minimum,
+     * but always larger than the heartbeat interval plus a safety margin
+     * for MQTT/WiFi jitter and scheduler delays.
+     *
+     * The margin is 2× the heartbeat interval so a device must miss at
+     * least two consecutive heartbeats before being marked offline.
+     */
+    public static function effectiveOnlineGraceSeconds(): int
+    {
+        $configuredGrace = (int) config('leaf.device_status.online_grace_seconds', 60);
+        $heartbeatInterval = self::getHeartbeatIntervalSeconds();
+
+        // Grace must exceed 2× heartbeat interval plus jitter margin.
+        $requiredGrace = ($heartbeatInterval * 2) + 10;
+
+        return max($configuredGrace, $requiredGrace);
+    }
+
+    /**
+     * Get the device heartbeat interval in seconds from SystemSetting,
+     * cached for 60 seconds to avoid repeated DB queries.
+     */
+    public static function getHeartbeatIntervalSeconds(): int
+    {
+        return (int) Cache::remember('device.heartbeat_interval_seconds', 60, function () {
+            $value = SystemSetting::getValue('heartbeat_interval');
+
+            // Keep in sync with the runtime configuration default (30s).
+            return $value !== null ? max(1, (int) $value) : 30;
+        });
     }
 }
