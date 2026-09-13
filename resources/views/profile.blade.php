@@ -2,7 +2,7 @@
     <style>
         @media (max-width: 639px) {
             .mobile-dashboard-type * {
-                font-size: 7px !important;
+                font-size: 12px !important;
             }
         }
     </style>

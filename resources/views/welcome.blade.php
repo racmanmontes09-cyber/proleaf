@@ -111,7 +111,7 @@
                     
                     <!-- Left: Logo & Brand -->
                     <a href="#" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] rounded-xl p-1">
-                        <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. is logo" class="h-10 w-10 object-contain" />
+
                         <img src="{{ asset('logo/ISPSC.jpg') }}" alt="Project L.E.A.F. logo" class="h-10 w-10 object-contain" />
                         <div class="flex flex-col">
                             <span class="text-xl font-extrabold tracking-normal text-[#1B4332] flex items-center gap-1.5">

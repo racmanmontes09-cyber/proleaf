@@ -25,6 +25,7 @@ class TelemetryController extends Controller
         $result = $this->telemetryService->storeTelemetry(
             $device,
             $request->telemetryPayload(),
+            broadcastRealtime: true,
         );
 
         $status = $result['created'] ? 201 : 200;

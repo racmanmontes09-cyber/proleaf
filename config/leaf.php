@@ -28,13 +28,20 @@ return [
         ],
     ],
     'camera' => [
-        // The ESP32-S3-CAM registers its LAN address via device heartbeat;
-        // live view connects the browser directly to the camera stream.
+        // The ESP32-S3-CAM registers its LAN address via device heartbeat.
         'stream_scheme' => env('LEAF_CAMERA_STREAM_SCHEME', 'http'),
         'stream_port' => (int) env('LEAF_CAMERA_STREAM_PORT', 81),
         'stream_path' => env('LEAF_CAMERA_STREAM_PATH', '/stream'),
         'audio_port' => (int) env('LEAF_CAMERA_AUDIO_PORT', 82),
         'audio_path' => env('LEAF_CAMERA_AUDIO_PATH', '/audio'),
+        // Cloud relay: the camera keeps an outbound WSS connection to this
+        // VPS relay; the dashboard serves /camera/stream and /camera/audio
+        // through it instead of exposing the camera's LAN IP.
+        'relay_url' => env('LEAF_CAMERA_RELAY_URL', 'https://projectleaf.tech'),
+        // Shared secret between Laravel (token issuer) and the relay (validator).
+        'relay_jwt_secret' => env('LEAF_CAMERA_RELAY_JWT_SECRET'),
+        // Relay token TTL in seconds.
+        'relay_token_ttl' => (int) env('LEAF_CAMERA_RELAY_TOKEN_TTL', 300),
     ],
     'mqtt' => [
         'host' => env('MQTT_HOST', '127.0.0.1'),

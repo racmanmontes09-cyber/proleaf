@@ -36,7 +36,7 @@
                 {!! $icon !!}
             </div>
         @elseif ($sensorKey)
-            <span class="inline-flex -translate-y-0.5 items-center max-sm:max-w-[3.75rem] max-sm:truncate text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 font-bold uppercase tracking-[0.18em] lg:tracking-normal max-sm:tracking-normal transition-colors duration-300"
+            <span class="inline-flex -translate-y-0.5 max-sm:translate-y-0 items-center max-sm:max-w-[3.75rem] max-sm:truncate text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 font-bold uppercase tracking-[0.18em] lg:tracking-normal max-sm:tracking-normal transition-colors duration-300"
                 x-bind:class="kpiStatusBadgeClass('{{ $sensorKey }}')"
             >
                 <span x-text="kpiStatusLabel('{{ $sensorKey }}')">{{ $status }}</span>
@@ -48,7 +48,7 @@
 
     <div class="mt-4 max-sm:mt-1 flex min-w-0 items-center justify-between gap-2 max-sm:gap-0.5 border-t border-[#2D6A4F]/10 dark:border-white/10 pt-3 max-sm:pt-1 text-[11px] lg:text-sm lg:leading-5 max-sm:text-[10px] max-sm:leading-3">
         @if ($icon && $sensorKey)
-            <span class="inline-flex -translate-y-0.5 items-center max-sm:max-w-[3.75rem] max-sm:truncate text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 font-bold uppercase tracking-[0.18em] lg:tracking-normal max-sm:tracking-normal transition-colors duration-300"
+            <span class="inline-flex -translate-y-0.5 max-sm:translate-y-0 items-center max-sm:max-w-[3.75rem] max-sm:truncate text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 font-bold uppercase tracking-[0.18em] lg:tracking-normal max-sm:tracking-normal transition-colors duration-300"
                 x-bind:class="kpiStatusBadgeClass('{{ $sensorKey }}')"
             >
                 <span x-text="kpiStatusLabel('{{ $sensorKey }}')">{{ $status }}</span>
@@ -64,7 +64,7 @@
         @endif
 
         @if ($target)
-            <span class="min-w-0 truncate text-right font-mono text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 text-gray-400 dark:text-slate-500">Target: {{ $target }}</span>
+            <span class="min-w-0 truncate text-right font-mono text-[10px] lg:text-xs lg:leading-4 max-sm:text-[9px] max-sm:leading-3 text-gray-400 dark:text-slate-500"><span class="max-sm:hidden">Target: </span>{{ $target }}</span>
         @endif
     </div>
 </div>

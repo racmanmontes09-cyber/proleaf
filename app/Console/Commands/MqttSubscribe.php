@@ -51,8 +51,8 @@ class MqttSubscribe extends Command
                 $username = config('leaf.mqtt.username');
                 $password = config('leaf.mqtt.password');
                 if (is_string($username) && $username !== '') {
-                    $settings->setUsername($username);
-                    $settings->setPassword(is_string($password) ? $password : null);
+                    $settings = $settings->setUsername($username);
+                    $settings = $settings->setPassword(is_string($password) ? $password : null);
                 }
 
                 $client->connect($settings, true);
